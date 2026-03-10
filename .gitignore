@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+
+# npm
+*.tgz
+.npmrc
+
+# Test output
+coverage/
+
+# Claude Code local
+.claude/settings.local.json

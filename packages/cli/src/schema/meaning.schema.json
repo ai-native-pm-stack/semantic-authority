@@ -1,0 +1,228 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://semantic-authority.dev/meaning.schema.json",
+  "title": "MEANING.yaml",
+  "description": "Semantic Authority meaning artifact — declares system goals, constraints, trade-offs, and drift policy.",
+  "type": "object",
+  "required": ["system", "version", "status", "owner", "last_reviewed", "goal", "constraints"],
+  "additionalProperties": false,
+  "properties": {
+    "system": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "System name in kebab-case"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version (e.g., 1.0.0)"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "active", "deprecated"],
+      "description": "Artifact lifecycle status"
+    },
+    "owner": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Role or team that owns this artifact"
+    },
+    "last_reviewed": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+      "description": "Date of last review (YYYY-MM-DD)"
+    },
+    "goal": {
+      "type": "object",
+      "required": ["primary", "non_goals"],
+      "properties": {
+        "primary": {
+          "type": "string",
+          "minLength": 10,
+          "description": "One precise sentence: Enable [who] to [do what] such that [observable outcome]"
+        },
+        "success_criteria": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 1,
+          "description": "Observable outcomes that define success"
+        },
+        "non_goals": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 5,
+          "description": "Explicit exclusions — minimum 5. If someone could accidentally build it, it belongs here."
+        }
+      },
+      "additionalProperties": false
+    },
+    "constraints": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "description", "category", "enforcement", "owner", "rationale", "source", "confidence"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^C-(FIN|SEC|COMPLIANCE|DATA|UX|PERF|REL|ARCH|OPS)-[A-Z][A-Z0-9-]+-\\d{3}$",
+            "description": "Constraint ID: C-<DOMAIN>-<SHORTNAME>-<NNN>"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 10,
+            "description": "Testable condition — not a preference"
+          },
+          "category": {
+            "type": "string",
+            "enum": ["business", "operational", "architectural", "security", "data"],
+            "description": "Constraint category"
+          },
+          "enforcement": {
+            "type": "string",
+            "enum": ["block", "warn", "observe"],
+            "description": "block = halts merge, warn = requires acknowledgement, observe = logged"
+          },
+          "owner": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Role or team that owns this constraint"
+          },
+          "rationale": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Why this constraint exists"
+          },
+          "source": {
+            "type": "string",
+            "enum": ["declared", "assumed"],
+            "description": "declared = explicitly stated, assumed = inferred"
+          },
+          "confidence": {
+            "type": "string",
+            "enum": ["high", "medium", "low"],
+            "description": "Confidence in this constraint's accuracy"
+          },
+          "verification_notes": {
+            "type": "string",
+            "description": "Conceptual verification method (review, audit, runtime check)"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "trade_offs": {
+      "type": "object",
+      "properties": {
+        "chosen": {
+          "type": "object",
+          "required": ["approach", "rationale"],
+          "properties": {
+            "approach": { "type": "string" },
+            "rationale": { "type": "string" }
+          },
+          "additionalProperties": false
+        },
+        "rejected": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["alternative", "reason"],
+            "properties": {
+              "alternative": { "type": "string" },
+              "reason": { "type": "string" },
+              "revisit_condition": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "known_risks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["risk"],
+            "properties": {
+              "risk": { "type": "string" },
+              "mitigation": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "interfaces": {
+      "type": "object",
+      "properties": {
+        "consumes": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "provides": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "evolution": {
+      "type": "object",
+      "properties": {
+        "current_focus": { "type": "string" },
+        "future_considerations": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "deprecations": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "drift_policy": {
+      "type": "object",
+      "required": ["review_cadence"],
+      "properties": {
+        "review_cadence": {
+          "type": "string",
+          "enum": ["weekly", "monthly", "quarterly", "after-incidents"],
+          "description": "How often meaning is reviewed"
+        },
+        "enforcement_rules": {
+          "type": "object",
+          "properties": {
+            "block": { "type": "string" },
+            "warn": { "type": "string" },
+            "observe": { "type": "string" }
+          },
+          "additionalProperties": false
+        },
+        "drift_record_fields": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "provenance": {
+      "type": "object",
+      "properties": {
+        "source_summary": { "type": "string" },
+        "assumptions": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "clarifications_needed": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "notes": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
