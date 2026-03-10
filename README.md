@@ -185,12 +185,13 @@ drift_policy:
 | [MANIFESTO.md](./MANIFESTO.md) | Everyone | Why Semantic Authority exists — the philosophical anchor |
 | [GUIDE.md](./GUIDE.md) | PMs, Architects, Tech Leads | How to write a MEANING.yaml — step-by-step, checklists, FAQ |
 | [AGENTS.md](./AGENTS.md) | Engineers, Agent builders | How AI agents consume MEANING.yaml — operating modes, multi-agent coordination |
+| [docs/GENERATE_MEANING_PROMPT.md](./docs/GENERATE_MEANING_PROMPT.md) | PMs, anyone with a BRD/PRD | LLM prompt template to generate a draft MEANING.yaml from existing product docs |
 
 ---
 
 ## How Different Roles Use This
 
-**Product Managers** author and update MEANING.yaml — writing goals, non-goals, and trade-offs. They review drift reports to understand where the system is diverging from intent. No code or CLI required; it's just YAML.
+**Product Managers** author and update MEANING.yaml — writing goals, non-goals, and trade-offs. They review drift reports to understand where the system is diverging from intent. Have an existing BRD/PRD? Use the [generation prompt](./docs/GENERATE_MEANING_PROMPT.md) to create a draft MEANING.yaml with any LLM, or use the Claude Code skill (`skills/generate-meaning.md`) to generate one directly in your IDE.
 
 **Architects & Tech Leads** author constraints and enforcement levels. They run `meaning validate` during design reviews. They review cross-system meaning coherence when constraints in one service affect another.
 
@@ -227,6 +228,12 @@ semantic-authority/
 ├── GUIDE.md               ← How to write MEANING.yaml
 ├── AGENTS.md              ← How agents consume it
 ├── LICENSE
+│
+├── docs/
+│   └── GENERATE_MEANING_PROMPT.md  ← LLM prompt to generate from BRD/PRD
+│
+├── skills/
+│   └── generate-meaning.md         ← Claude Code skill for generation
 │
 ├── packages/cli/          ← The `meaning` CLI
 │   ├── package.json

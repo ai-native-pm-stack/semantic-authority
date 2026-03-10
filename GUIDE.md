@@ -398,6 +398,10 @@ It can. Every governance mechanism can be weaponized. The framework includes mit
 
 When documentation initiatives consistently fail due to maintenance neglect. When your team is small with low turnover and strong implicit understanding. When you're in early exploration and meaning is genuinely uncertain. When you cannot allocate explicit time for governance activities. The framework is a tool suited for some contexts and poorly suited for others.
 
+### How is this different from spec-driven development?
+
+They solve different problems and are complementary. Spec-driven development (OpenAPI, Protobuf, JSON Schema) defines **interface shape** — what fields exist, what types they have, what endpoints accept and return. MEANING.yaml defines **validity boundaries** — what must never happen, what the system is not for, and what trade-offs were made. An OpenAPI spec can tell you the `/invoices` endpoint returns an `InvoiceResponse` object. It cannot tell you that the system deliberately excludes multi-currency, that approval thresholds are a SOX requirement, or that optimistic locking was chosen over pessimistic locking. A well-governed system has both: specs for interface correctness, MEANING.yaml for semantic correctness.
+
 ### Is this consultant-ware?
 
 It can be implemented simply or elaborately. The core — a structured artifact declaring goals, constraints, and trade-offs, version-controlled with code — requires no consultants. If you couldn't implement a useful version in a day, you're over-engineering. If someone is selling you an expensive implementation, be skeptical.
