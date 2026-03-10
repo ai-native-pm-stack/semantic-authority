@@ -25,5 +25,8 @@ Thumbs.db
 # Test output
 coverage/
 
+# Generated agent context (output of `meaning context`)
+.claude/meaning-context.md
+
 # Claude Code local
 .claude/settings.local.json

@@ -52,30 +52,30 @@ The generated file looks like:
 ## Source: MEANING.yaml v1.0.0 | Last reviewed: 2026-03-09
 
 ### This System's Purpose
-Enable B2B clients to offer hotel search with composable perks
-to their premium members through API or embedded UI.
+Enable finance teams to submit, approve, and track invoices
+with automated compliance checks and audit trails.
 
 ### BLOCK-Level Constraints (must never violate)
-- **C-FIN-PAYMENT-CONFIRMED-001**: Booking must never be marked
-  confirmed without a verified payment webhook
-- **C-SEC-NO-CARD-STORAGE-002**: System must never store raw
-  credit card data including CVV
+- **C-FIN-NO-DOUBLE-PAY-001**: An invoice must never be paid
+  twice for the same vendor and invoice number
+- **C-SEC-PII-REDACT-002**: System must never expose vendor
+  bank account numbers in API responses or logs
 
 ### WARN-Level Constraints (flag if affected)
-- **C-PERF-SEARCH-P95-003**: Hotel search P95 latency must
-  remain under 2000ms
+- **C-PERF-SEARCH-P95-004**: Invoice search P95 latency must
+  remain under 500ms
 
 ### This System Does NOT
-- Handle payment processing directly (delegates to Stripe)
-- Support B2C direct consumer signups in v1
-- Provide flight search or booking
-- Manage loyalty points or frequent flyer programs
-- Support offline or call-center booking flows
+- Handle payment execution (delegates to bank integration)
+- Support expense report or reimbursement workflows in v1
+- Provide tax calculation or filing
+- Manage vendor onboarding or KYC
+- Support multi-currency invoices in v1
 
 ### Trade-Offs You Should Know
-- We chose eventual consistency for perk inventory counts
-  over strong consistency with distributed locks. Revisit
-  if overselling exceeds 2% of redemptions.
+- We chose optimistic locking for concurrent invoice approvals
+  over pessimistic locking. Revisit if approval conflicts
+  exceed 1% of total approvals.
 
 ### When You Write Code
 - Cite constraint IDs in PR descriptions and code comments
@@ -107,16 +107,16 @@ The agent implements features that satisfy constraints.
 
 **Example PR description from an agent in execution mode:**
 ```
-Implements perk matching for hotel search results.
+Implements bulk invoice import via CSV upload.
 
 Constraints honored:
-- C-FIN-PAYMENT-CONFIRMED-001: Not affected (no payment logic)
-- C-PERF-SEARCH-P95-003: Perk matching adds ~50ms; within budget
-- C-SEC-NO-CARD-STORAGE-002: No card data touched
+- C-FIN-NO-DOUBLE-PAY-001: Deduplication check on (vendor_id, invoice_number) before insert
+- C-PERF-SEARCH-P95-004: Import runs async; no impact on search latency
+- C-SEC-PII-REDACT-002: Bank fields stripped from import confirmation response
 
 Non-goals respected:
-- Did not add flight search capabilities
-- Did not add B2C signup flow
+- Did not add OCR/document scanning
+- Did not add multi-currency support
 ```
 
 If an agent cannot cite relevant constraints, that's a signal that the MEANING.yaml is incomplete.
@@ -140,9 +140,9 @@ The agent compares implementation to canonical meaning. It identifies mismatches
 
 | Constraint | Status | Action |
 |------------|--------|--------|
-| C-FIN-PAYMENT-CONFIRMED-001 | VIOLATION | block — PR adds booking confirmation path that bypasses webhook check |
-| C-SEC-NO-CARD-STORAGE-002 | OK | Not affected |
-| C-PERF-SEARCH-P95-003 | DRIFT | warn — New API call adds ~300ms to search path |
+| C-FIN-NO-DOUBLE-PAY-001 | VIOLATION | block — PR adds payment path that skips duplicate check |
+| C-SEC-PII-REDACT-002 | OK | Not affected |
+| C-PERF-SEARCH-P95-004 | DRIFT | warn — New join adds ~200ms to invoice search |
 
 Recommendation: Fix C-FIN violation before merge. Acknowledge C-PERF drift with owner and revisit date.
 ```
@@ -162,17 +162,17 @@ The agent proposes updates to the MEANING.yaml based on observed patterns, new r
 
 ```yaml
 # Proposed addition to constraints:
-- id: C-DATA-PERK-INVENTORY-004
-  description: "Perk inventory count must never go negative"
-  category: data
+- id: C-FIN-LATE-FEE-CALC-007
+  description: "Late payment fee must never exceed the original invoice amount"
+  category: business
   enforcement: block
-  owner: platform-team
-  rationale: "Negative inventory causes downstream booking failures"
+  owner: finance-engineering
+  rationale: "Uncapped late fees create legal exposure and vendor disputes"
   source: assumed  # Inferred from observed bug pattern
   confidence: medium
 
-# Rationale: Three bugs in the last sprint involved negative
-# perk counts. This constraint was implicit but not declared.
+# Rationale: Two incidents this quarter where compounding late fees
+# exceeded the invoice total. This constraint was implicit but not declared.
 # Recommend promoting to block-level enforcement.
 ```
 

@@ -111,65 +111,65 @@ jobs:
 ## What's in MEANING.yaml?
 
 ```yaml
-system: hotel-booking-service
+system: invoice-processor
 version: 1.0.0
 status: active
-owner: platform-team
+owner: finance-engineering
 last_reviewed: 2026-03-09
 
 goal:
   primary: >
-    Enable B2B clients to offer hotel search with composable perks
-    to their premium members through API or embedded UI.
+    Enable finance teams to submit, approve, and track invoices
+    with automated compliance checks and audit trails.
   success_criteria:
-    - "B2B client can onboard, configure pricing, and search hotels within 1 hour"
-    - "Hotel search returns results with matched perks in under 2 seconds"
+    - "Invoice submitted to fully approved in under 48 hours for standard amounts"
+    - "Zero duplicate payments for the same vendor and invoice number"
   non_goals:
-    - "Does not handle payment processing directly — delegates to Stripe"
-    - "Does not support B2C direct consumer signups in v1"
-    - "Does not provide flight search or booking"
-    - "Does not manage loyalty points or frequent flyer programs"
-    - "Does not support offline or call-center booking flows"
+    - "Does not handle payment execution — delegates to bank integration"
+    - "Does not support expense report or reimbursement workflows in v1"
+    - "Does not provide tax calculation or filing"
+    - "Does not manage vendor onboarding or KYC"
+    - "Does not support multi-currency invoices in v1 — all amounts in USD"
 
 constraints:
-  - id: C-FIN-PAYMENT-CONFIRMED-001
-    description: "Booking must never be marked confirmed without a verified payment webhook"
+  - id: C-FIN-NO-DOUBLE-PAY-001
+    description: "An invoice must never be paid twice for the same vendor and invoice number"
     category: business
     enforcement: block
-    owner: payments-team
-    rationale: "Financial and legal exposure if bookings confirm without payment"
+    owner: finance-engineering
+    rationale: "Duplicate payments cause direct financial loss"
     source: declared
     confidence: high
 
-  - id: C-SEC-NO-CARD-STORAGE-002
-    description: "System must never store raw credit card data including CVV"
+  - id: C-SEC-PII-REDACT-002
+    description: "System must never expose vendor bank account numbers in API responses or logs"
     category: security
     enforcement: block
     owner: security
-    rationale: "PCI-DSS compliance requirement"
+    rationale: "Bank account numbers are sensitive financial PII"
     source: declared
     confidence: high
 
-  - id: C-PERF-SEARCH-P95-003
-    description: "Hotel search P95 latency must remain under 2000ms"
+  - id: C-PERF-SEARCH-P95-004
+    description: "Invoice search P95 latency must remain under 500ms"
     category: operational
     enforcement: warn
-    owner: platform-team
-    rationale: "User experience threshold for search responsiveness"
+    owner: finance-engineering
+    rationale: "Slow search blocks month-end reconciliation"
     source: declared
     confidence: medium
 
 trade_offs:
   chosen:
-    approach: "Eventual consistency for perk inventory counts"
-    rationale: "Reduces booking latency; exact counts not needed at search time"
+    approach: "Optimistic locking for concurrent invoice approvals"
+    rationale: "Approval conflicts are rare; avoids blocking the common path"
   rejected:
-    - alternative: "Strong consistency with distributed locks"
-      reason: "200ms latency overhead per search result unacceptable"
-      revisit_condition: "If overselling perks exceeds 2% of redemptions"
+    - alternative: "Pessimistic locking with row-level locks"
+      reason: "Adds 50-100ms latency and deadlock risk under load"
+      revisit_condition: "If approval conflicts exceed 1% of total approvals"
 
 drift_policy:
-  review_cadence: "monthly"
+  review_cadence: monthly
   enforcement_rules:
     block: "Violation must not merge without remediation or an approved drift record"
     warn: "Acknowledgement required with owner and revisit date"
@@ -202,6 +202,22 @@ drift_policy:
 
 ---
 
+## What Ships vs. What's Generated
+
+The `.claude/` directory is **not** part of this package. It is a generated **output** in your project.
+
+| File | Where It Lives | Who Creates It | Committed? |
+|------|---------------|----------------|------------|
+| `MEANING.yaml` | **Your repo root** | You (human) | ✅ Yes — this is your source of truth |
+| `.claude/meaning-context.md` | **Your repo** `.claude/` | `meaning context` (auto-generated) | ❌ No — regenerate from MEANING.yaml anytime |
+| `@semantic-authority/cli` | **npm registry** | This project | N/A — installed as dependency or run via npx |
+
+**Flow:** You write `MEANING.yaml` → CLI reads it → generates `.claude/meaning-context.md` → Claude Code auto-loads it.
+
+Add `.claude/meaning-context.md` to your project's `.gitignore`. It's a build artifact, not a source file.
+
+---
+
 ## Repo Structure
 
 ```
@@ -223,7 +239,7 @@ semantic-authority/
 │   └── action.yml
 │
 └── examples/
-    └── hotel-booking/     ← Worked example
+    └── invoice-processor/ ← Worked example
         └── MEANING.yaml
 ```
 

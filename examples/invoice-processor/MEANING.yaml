@@ -1,0 +1,145 @@
+# Semantic Authority — Invoice Processor
+# This is a worked example. See GUIDE.md for how to write your own.
+
+system: invoice-processor
+version: 1.0.0
+status: active
+owner: finance-engineering
+last_reviewed: 2026-03-09
+
+goal:
+  primary: >
+    Enable finance teams to submit, approve, and track invoices
+    with automated compliance checks and audit trails.
+  success_criteria:
+    - "Invoice submitted to fully approved in under 48 hours for standard amounts"
+    - "Zero duplicate payments for the same vendor and invoice number"
+    - "Complete audit trail for every state transition, queryable by compliance"
+  non_goals:
+    - "Does not handle payment execution — delegates to bank integration"
+    - "Does not support expense report or reimbursement workflows in v1"
+    - "Does not provide tax calculation or filing"
+    - "Does not manage vendor onboarding or KYC"
+    - "Does not support multi-currency invoices in v1 — all amounts in USD"
+    - "Does not provide OCR or document scanning — invoices entered manually or via API"
+    - "Does not support recurring or scheduled payments"
+
+constraints:
+  - id: C-FIN-NO-DOUBLE-PAY-001
+    description: "An invoice must never be paid twice for the same vendor and invoice number"
+    category: business
+    enforcement: block
+    owner: finance-engineering
+    rationale: "Duplicate payments cause direct financial loss and vendor relationship damage"
+    source: declared
+    confidence: high
+    verification_notes: "Unique constraint on (vendor_id, invoice_number); integration test with concurrent submissions"
+
+  - id: C-SEC-PII-REDACT-002
+    description: "System must never expose vendor bank account numbers in API responses or logs"
+    category: security
+    enforcement: block
+    owner: security
+    rationale: "Bank account numbers are sensitive financial PII — exposure creates fraud risk"
+    source: declared
+    confidence: high
+    verification_notes: "Response serializer strips bank fields; log scrubber regex for account patterns"
+
+  - id: C-SEC-APPROVAL-THRESHOLD-003
+    description: "Users must never approve invoices above their role-based authorization threshold"
+    category: security
+    enforcement: block
+    owner: finance-engineering
+    rationale: "Segregation of duties is a SOX compliance requirement"
+    source: declared
+    confidence: high
+    verification_notes: "Middleware checks user.approval_limit against invoice.amount before state transition"
+
+  - id: C-PERF-SEARCH-P95-004
+    description: "Invoice search P95 latency must remain under 500ms"
+    category: operational
+    enforcement: warn
+    owner: finance-engineering
+    rationale: "Finance teams run frequent searches during month-end close — slow search blocks reconciliation"
+    source: declared
+    confidence: medium
+    verification_notes: "Load test with 100 concurrent searches across 12 months of data"
+
+  - id: C-ARCH-AUDIT-TRAIL-005
+    description: "Every invoice state change must produce an immutable audit log entry"
+    category: architectural
+    enforcement: block
+    owner: compliance
+    rationale: "Audit trail is a regulatory requirement — gaps create compliance exposure"
+    source: declared
+    confidence: high
+    verification_notes: "Append-only audit table; integration test verifying log entry for each status transition"
+
+  - id: C-DATA-NO-NEGATIVE-BALANCE-006
+    description: "Department budget balance must never go negative without CFO-level approval"
+    category: data
+    enforcement: block
+    owner: finance-engineering
+    rationale: "Unapproved overspend creates budget control failures and reporting inaccuracies"
+    source: declared
+    confidence: high
+    verification_notes: "CHECK constraint on balance; approval workflow escalation when amount exceeds remaining budget"
+
+trade_offs:
+  chosen:
+    approach: "Optimistic locking for concurrent invoice approvals"
+    rationale: "Approval conflicts are rare; optimistic locking avoids blocking the common path"
+  rejected:
+    - alternative: "Pessimistic locking with row-level locks"
+      reason: "Adds 50-100ms latency to every approval and creates deadlock risk under load"
+      revisit_condition: "If approval conflicts exceed 1% of total approvals"
+    - alternative: "Queue-based sequential processing"
+      reason: "Adds unnecessary latency for a low-contention operation"
+      revisit_condition: "If concurrent approval volume exceeds 500/minute"
+  known_risks:
+    - risk: "Optimistic lock retries may cause user-visible approval failures during high-contention periods"
+      mitigation: "Client-side retry with backoff; alert if retry rate exceeds 0.5% over 1 hour"
+
+interfaces:
+  consumes:
+    - "Bank Integration API (payment execution)"
+    - "ERP System (general ledger sync)"
+    - "SSO Provider (authentication and role mapping)"
+  provides:
+    - "REST API for invoice submission, approval, and search"
+    - "Webhook notifications for status changes"
+    - "CSV/PDF export for compliance reporting"
+
+evolution:
+  current_focus: "Core invoice lifecycle — submit, approve, pay, reconcile"
+  future_considerations:
+    - "Multi-currency support with exchange rate integration"
+    - "AI-assisted invoice categorization and anomaly detection"
+    - "Mobile approval workflow"
+  deprecations:
+    - "Legacy spreadsheet-based approval process (archived, not maintained)"
+
+drift_policy:
+  review_cadence: monthly
+  enforcement_rules:
+    block: "Violation must not merge without remediation or an approved drift record with expiry"
+    warn: "Acknowledgement required with owner and revisit date"
+    observe: "Logged for trend analysis; reviewed monthly"
+  drift_record_fields:
+    - drift_id
+    - constraint_id
+    - observed_divergence
+    - impact_assessment
+    - decision
+    - owner
+    - date
+    - expiry
+
+provenance:
+  source_summary: "Derived from finance team requirements and SOX compliance audit findings"
+  assumptions:
+    - "Bank integration handles all payment execution — system only tracks status"
+    - "All invoices are in USD for v1"
+  clarifications_needed:
+    - "Maximum invoice amount requiring board-level approval"
+    - "Retention policy for audit logs (7 years assumed)"
