@@ -28,7 +28,7 @@ Prompts are ephemeral. Meaning must be durable.
 
 ---
 
-## We believe:
+## The belief:
 
 **Human goals must become explicit system meaning.**
 

@@ -19,7 +19,7 @@ interface Constraint {
   confidence: string;
 }
 
-interface MeaningDoc {
+export interface MeaningDoc {
   system: string;
   version: string;
   status: string;
@@ -104,7 +104,7 @@ export async function contextCommand(options: ContextOptions): Promise<void> {
   );
 }
 
-function generateContext(doc: MeaningDoc): string {
+export function generateContext(doc: MeaningDoc): string {
   const lines: string[] = [];
 
   // Header

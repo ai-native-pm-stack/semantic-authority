@@ -1,0 +1,22 @@
+{
+  "name": "semantic-authority-pitch",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Pitch collateral build tooling for Semantic Authority",
+  "scripts": {
+    "build:brief": "node build-brief.cjs",
+    "build:deck": "node build-deck.cjs",
+    "build": "npm run build:brief && npm run build:deck"
+  },
+  "keywords": [],
+  "author": "AI Native PM Stack",
+  "license": "MIT",
+  "dependencies": {
+    "docx": "^9.6.1",
+    "pptxgenjs": "^4.0.1",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-icons": "^5.6.0",
+    "sharp": "^0.34.5"
+  }
+}

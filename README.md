@@ -73,6 +73,8 @@ npx @semantic-authority/cli init
 
 Interactive wizard asks: system name, primary goal, non-goals, first constraints. Generates `MEANING.yaml` at your repo root and `.claude/meaning-context.md` for agent consumption.
 
+If the npm package is not published yet, use the local source instructions in [`packages/cli/README.md`](./packages/cli/README.md).
+
 ### 2. Validate it
 
 ```bash
@@ -100,7 +102,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: semantic-authority/meaning-action@v1
+      # Use @main until the first release tag exists, then pin to @v1.
+      - uses: ai-native-pm-stack/semantic-authority/action@main
         with:
           validate: true
           gate: true
@@ -186,6 +189,8 @@ drift_policy:
 | [GUIDE.md](./GUIDE.md) | PMs, Architects, Tech Leads | How to write a MEANING.yaml — step-by-step, checklists, FAQ |
 | [AGENTS.md](./AGENTS.md) | Engineers, Agent builders | How AI agents consume MEANING.yaml — operating modes, multi-agent coordination |
 | [docs/GENERATE_MEANING_PROMPT.md](./docs/GENERATE_MEANING_PROMPT.md) | PMs, anyone with a BRD/PRD | LLM prompt template to generate a draft MEANING.yaml from existing product docs |
+| [packages/cli/README.md](./packages/cli/README.md) | Engineers, maintainers | CLI install, commands, and smoke-test path |
+| [action/README.md](./action/README.md) | Engineers, DevOps | GitHub Action usage and release-state notes |
 
 ---
 
@@ -271,4 +276,4 @@ MIT License — Copyright 2026 Samson Aligba
 
 ---
 
-Built by [Samson Aligba](https://samsonaligba.com)
+Maintained as part of the AI Native PM Stack.

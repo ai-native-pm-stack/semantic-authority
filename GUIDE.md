@@ -31,6 +31,7 @@ The problems MEANING.yaml addresses are not new. Teams already have artifacts. B
 | **ADR** | Past decisions, trade-offs, rationale | No goals, no non-goals, no constraints. Not enforced. Historical, not governing. |
 | **RFC** | Proposals, alternatives considered | Point-in-time. Rarely maintained after approval. Prose, not structured. |
 | **CLAUDE.md / AGENT.md** | Operational context for agents (how to work) | No system meaning (what the work must mean). Unstructured prose. |
+| **Skills / System Prompts** | Reusable prompting patterns, task instructions, agent behaviors | Ephemeral execution guidance. They consume meaning but do not canonically define system validity. |
 | **OpenAPI / JSON Schema** | Interface structure with precision | Structure, not intent. No "why" or "what not." |
 | **Test Suite** | Expected behavior | Behavior, not meaning. Tests verify *what the system does*, not *what it's for*. |
 | **Compliance Docs** | Regulatory constraints | Disconnected from code. Enforced by audit, not CI. |
