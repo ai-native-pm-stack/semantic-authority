@@ -28,11 +28,13 @@ export function renderText(result: ReviewResult, opts: { noColor?: boolean } = {
   }
 
   if (result.insufficientContext.length > 0) {
-    lines.push(
-      c.dim(
-        `ℹ  ${result.insufficientContext.length} constraint${result.insufficientContext.length === 1 ? "" : "s"} flagged insufficient_context: ${result.insufficientContext.join(", ")}`
-      )
-    );
+    const ids = result.insufficientContext.map((item) => item.constraintId).join(", ");
+    lines.push(c.dim(
+      `ℹ  ${result.insufficientContext.length} constraint${result.insufficientContext.length === 1 ? "" : "s"} flagged insufficient_context: ${ids}`
+    ));
+    for (const item of result.insufficientContext) {
+      lines.push(...wrap(`${item.constraintId}: ${item.rationale}`, "   ").map((line) => c.dim(line)));
+    }
   }
 
   lines.push("");

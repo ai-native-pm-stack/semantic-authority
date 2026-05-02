@@ -19,7 +19,11 @@ export function renderJson(result: ReviewResult): string {
         rationale: f.rationale,
         suggestion: f.suggestion,
       })),
-      insufficient_context: result.insufficientContext,
+      insufficient_context: result.insufficientContext.map((item) => ({
+        constraint_id: item.constraintId,
+        confidence: item.confidence,
+        rationale: item.rationale,
+      })),
       stats: {
         constraints_total: result.stats.constraintsTotal,
         constraints_reviewed: result.stats.constraintsReviewed,

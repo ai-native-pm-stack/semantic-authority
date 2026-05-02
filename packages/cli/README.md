@@ -45,6 +45,15 @@ Generate agent context from an existing artifact:
 meaning context --file ./MEANING.yaml --output ./.claude/meaning-context.md
 ```
 
+Review the current diff against declared constraints:
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+meaning review --base origin/main
+meaning review --staged --format json
+meaning review --base origin/main --sarif-output meaning-review.sarif
+```
+
 ## Smoke Test
 
 From this package directory:

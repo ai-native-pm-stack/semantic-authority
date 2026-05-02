@@ -1,6 +1,6 @@
 # Semantic Authority GitHub Action
 
-This action wraps the `meaning` CLI so pull requests can validate `MEANING.yaml` and publish a drift report in the workflow summary.
+This action wraps the `meaning` CLI so pull requests can validate `MEANING.yaml`, review diffs against declared constraints, and upload SARIF annotations.
 
 ## Usage
 
@@ -15,12 +15,19 @@ on:
 jobs:
   meaning:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: ai-native-pm-stack/semantic-authority/action@v1
         with:
-          validate: true
-          gate: true
+          mode: both
+          fail-on: block
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
 Before the first tagged release, use the default branch or a commit SHA instead:
@@ -31,22 +38,29 @@ Before the first tagged release, use the default branch or a commit SHA instead:
 
 ## Inputs
 
-- `validate`: run schema and semantic validation. Default: `true`
-- `gate`: append the validation output to the workflow summary. Default: `false`
-- `strict`: treat warnings as errors. Default: `false`
+- `mode`: `validate`, `review`, or `both`. Default: `validate`
+- `validate`: deprecated compatibility flag for schema validation
+- `gate`: deprecated compatibility flag for review mode
+- `strict`: treat validation warnings as errors. Default: `false`
 - `meaning-file`: path to the `MEANING.yaml` file. Default: `./MEANING.yaml`
+- `base`: base ref for review mode. Defaults to the PR base ref or `main`
+- `fail-on`: severity threshold that exits non-zero in review mode. Default: `block`
+- `model`: Anthropic model id for the review judge
+- `budget-usd`: per-run cost cap for review mode. Default: `1.00`
+- `upload-sarif`: upload code-scanning annotations when review mode runs. Default: `true`
 
 ## What It Does
 
 1. installs Node.js 20
 2. installs `@semantic-authority/cli`
 3. runs `meaning validate`
-4. optionally writes a PR-friendly report into `GITHUB_STEP_SUMMARY`
+4. runs `meaning review` once, writes the text report into `GITHUB_STEP_SUMMARY`, and optionally emits SARIF from the same judgment
+5. uploads SARIF so GitHub can render inline annotations and code-scanning alerts
 
 ## Smoke Test
 
-The fastest validation path is to:
+The fastest smoke path is to:
 
 1. push this repo to GitHub
 2. add the workflow above to a sample repo that includes `MEANING.yaml`
-3. open a pull request and confirm the action summary includes the validation report
+3. open a pull request and confirm the action summary includes the review report and SARIF annotations appear on changed lines

@@ -199,3 +199,18 @@ export function changedLineNumbers(file: FileDiff): number[] {
   }
   return numbers;
 }
+
+export function findDiffFile(diff: Diff, path: string): FileDiff | undefined {
+  return diff.files.find((file) => file.path === path || file.oldPath === path);
+}
+
+export function lineTouchesDiffHunk(file: FileDiff, line: number): boolean {
+  if (!Number.isInteger(line) || line < 1) return false;
+
+  return file.hunks.some((hunk) => {
+    const start = hunk.newStart;
+    const span = Math.max(hunk.newLines, 1);
+    const end = start + span - 1;
+    return line >= start && line <= end;
+  });
+}

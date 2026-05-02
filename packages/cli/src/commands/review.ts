@@ -27,6 +27,7 @@ export interface ReviewOptions {
   noColor?: boolean;
   verbose?: boolean;
   output?: string;
+  sarifOutput?: string;
 }
 
 export async function reviewCommand(args: string[], options: ReviewOptions): Promise<void> {
@@ -134,7 +135,7 @@ export async function reviewCommand(args: string[], options: ReviewOptions): Pro
     }
 
     const onlyFilter = options.only?.split(",").map((s) => s.trim()).filter(Boolean);
-    const filteredFindings = onlyFilter
+    const visibleFindings = onlyFilter
       ? aggregated.findings.filter((f) => onlyFilter.includes(f.severity))
       : aggregated.findings;
 
@@ -149,7 +150,7 @@ export async function reviewCommand(args: string[], options: ReviewOptions): Pro
       system: doc.system,
       version: doc.version,
       diff: { base: diff.base, head: diff.head, files: diff.files.length, lines: diff.totalLines },
-      findings: filteredFindings,
+      findings: visibleFindings,
       stats: {
         constraintsTotal: doc.constraints.length,
         constraintsReviewed: reviewedConstraints.length,
@@ -160,6 +161,14 @@ export async function reviewCommand(args: string[], options: ReviewOptions): Pro
       },
       insufficientContext: aggregated.insufficientContext,
     };
+
+    if (options.sarifOutput) {
+      const sarif = renderSarif(result, reviewedConstraints);
+      writeFileSync(resolve(options.sarifOutput), sarif);
+      if (options.verbose) {
+        console.error(chalk.dim(`[review] wrote sarif to ${options.sarifOutput}`));
+      }
+    }
 
     let output: string;
     if (options.format === "json") {
@@ -178,7 +187,7 @@ export async function reviewCommand(args: string[], options: ReviewOptions): Pro
       console.log(output);
     }
 
-    process.exit(exitCodeFor(filteredFindings, options.failOn));
+    process.exit(exitCodeFor(aggregated.findings, options.failOn));
   } catch (e) {
     if ((e as { __exitCode?: number }).__exitCode !== undefined) {
       process.exit((e as { __exitCode: number }).__exitCode);

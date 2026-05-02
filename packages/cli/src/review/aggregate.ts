@@ -1,9 +1,12 @@
 import type {
   Constraint,
+  Confidence,
   Diff,
   Finding,
+  InsufficientContextItem,
   JudgeFindingRaw,
 } from "./types.js";
+import { findDiffFile, lineTouchesDiffHunk } from "./diff.js";
 
 export interface AggregateInput {
   rawFindings: JudgeFindingRaw[];
@@ -13,14 +16,14 @@ export interface AggregateInput {
 
 export interface AggregateResult {
   findings: Finding[];
-  insufficientContext: string[];
+  insufficientContext: InsufficientContextItem[];
   dropped: Array<{ raw: JudgeFindingRaw; reason: string }>;
 }
 
 export function aggregate(input: AggregateInput): AggregateResult {
   const byId = new Map(input.constraints.map((c) => [c.id, c]));
   const findings: Finding[] = [];
-  const insufficient: string[] = [];
+  const insufficient: InsufficientContextItem[] = [];
   const dropped: Array<{ raw: JudgeFindingRaw; reason: string }> = [];
   const seen = new Set<string>();
 
@@ -36,8 +39,12 @@ export function aggregate(input: AggregateInput): AggregateResult {
     if (raw.verdict === "not_at_risk") continue;
 
     if (raw.verdict === "insufficient_context") {
-      if (!insufficient.includes(raw.constraint_id)) {
-        insufficient.push(raw.constraint_id);
+      if (!insufficient.some((item) => item.constraintId === raw.constraint_id)) {
+        insufficient.push({
+          constraintId: raw.constraint_id,
+          confidence: raw.confidence as Confidence,
+          rationale: raw.rationale,
+        });
       }
       continue;
     }
@@ -48,7 +55,23 @@ export function aggregate(input: AggregateInput): AggregateResult {
       continue;
     }
 
-    const dedupeKey = `${raw.constraint_id}|${raw.file ?? ""}|${raw.line ?? ""}`;
+    if (!raw.file || !raw.line) {
+      dropped.push({ raw, reason: "missing file or line location" });
+      continue;
+    }
+
+    const diffFile = findDiffFile(input.diff, raw.file);
+    if (!diffFile) {
+      dropped.push({ raw, reason: "file not present in diff" });
+      continue;
+    }
+
+    if (!lineTouchesDiffHunk(diffFile, raw.line)) {
+      dropped.push({ raw, reason: "line not present in diff hunk" });
+      continue;
+    }
+
+    const dedupeKey = `${raw.constraint_id}|${diffFile.path}|${raw.line}`;
     if (seen.has(dedupeKey)) continue;
     seen.add(dedupeKey);
 
@@ -57,7 +80,7 @@ export function aggregate(input: AggregateInput): AggregateResult {
       severity: constraint.enforcement,
       verdict: raw.verdict,
       confidence: raw.confidence,
-      file: raw.file,
+      file: diffFile.path,
       line: raw.line,
       evidenceQuote: raw.evidence_quote,
       rationale: raw.rationale,

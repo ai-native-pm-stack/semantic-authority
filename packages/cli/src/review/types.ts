@@ -72,6 +72,12 @@ export interface Finding {
   suggestion?: string;
 }
 
+export interface InsufficientContextItem {
+  constraintId: string;
+  confidence: Confidence;
+  rationale: string;
+}
+
 export interface ReviewResult {
   meaningFile: string;
   system: string;
@@ -86,7 +92,7 @@ export interface ReviewResult {
     outputTokens: number;
     costUsd: number;
   };
-  insufficientContext: string[];
+  insufficientContext: InsufficientContextItem[];
 }
 
 export interface JudgeUsage {

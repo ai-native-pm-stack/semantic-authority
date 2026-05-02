@@ -174,6 +174,7 @@ meaning review --diff path/to/patch.diff           # from file
 git diff main...feature | meaning review -         # from stdin
 meaning review --format json                       # machine-readable
 meaning review --only block                        # suppress warns
+meaning review --sarif-output meaning-review.sarif # text + SARIF in one run
 meaning review --budget-usd 0.25                   # cap spend per run
 ```
 

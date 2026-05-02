@@ -60,6 +60,7 @@ program
   .option("--max-files <n>", "Cap on files in a single review run", "50")
   .option("--budget-usd <n>", "Abort before API call if estimate exceeds this", "1.00")
   .option("-o, --output <path>", "Write rendered output to a file")
+  .option("--sarif-output <path>", "Also write SARIF output to a file")
   .option("--no-color", "Disable ANSI colors in text output")
   .option("--verbose", "Print pre-filter and budget diagnostics to stderr")
   .action((stdinArg: string | undefined, opts: Record<string, unknown>) => {
@@ -79,6 +80,7 @@ program
       noColor: opts.color === false,
       verbose: opts.verbose as boolean | undefined,
       output: opts.output as string | undefined,
+      sarifOutput: opts.sarifOutput as string | undefined,
     });
   });
 
