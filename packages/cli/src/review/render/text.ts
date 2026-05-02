@@ -1,12 +1,16 @@
 import chalk from "chalk";
 import type { ReviewResult, Finding } from "../types.js";
 
-export function renderText(result: ReviewResult, opts: { noColor?: boolean } = {}): string {
+export function renderText(
+  result: ReviewResult,
+  opts: { noColor?: boolean; commandName?: "review" | "drift" } = {}
+): string {
   const c = opts.noColor ? noColorChalk() : chalk;
   const lines: string[] = [];
+  const commandName = opts.commandName ?? result.commandName ?? "review";
 
   lines.push("");
-  lines.push(`meaning review — ${result.system} @ ${result.meaningFile}`);
+  lines.push(`meaning ${commandName} — ${result.system} @ ${result.meaningFile}`);
   lines.push(
     `Diff: ${result.diff.files} files, ${result.diff.lines} lines changed (base: ${result.diff.base})`
   );

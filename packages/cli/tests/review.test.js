@@ -1,5 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { parseUnifiedDiff, lineTouchesDiffHunk } from "../dist/review/diff.js";
 import { prefilter, globMatch } from "../dist/review/prefilter.js";
 import { aggregate, quoteAppearsInDiff, exitCodeFor } from "../dist/review/aggregate.js";
@@ -343,6 +345,7 @@ test("estimateCostUsd computes deterministically", () => {
 test("renderText shows constraint id and severity", () => {
   const out = renderText(
     {
+      commandName: "review",
       meaningFile: "MEANING.yaml",
       system: "demo",
       version: "1.0.0",
@@ -373,6 +376,7 @@ test("renderText shows constraint id and severity", () => {
 test("renderText includes insufficient_context rationale", () => {
   const out = renderText(
     {
+      commandName: "review",
       meaningFile: "MEANING.yaml",
       system: "demo",
       version: "1.0.0",
@@ -393,8 +397,26 @@ test("renderText includes insufficient_context rationale", () => {
   assert.match(out, /too vague to evaluate/);
 });
 
+test("renderText can render drift heading", () => {
+  const out = renderText(
+    {
+      commandName: "drift",
+      meaningFile: "MEANING.yaml",
+      system: "demo",
+      version: "1.0.0",
+      diff: { base: "main", head: "HEAD", files: 0, lines: 0 },
+      findings: [],
+      stats: { constraintsTotal: 0, constraintsReviewed: 0, calls: 1, inputTokens: 0, outputTokens: 0, costUsd: 0 },
+      insufficientContext: [],
+    },
+    { noColor: true, commandName: "drift" }
+  );
+  assert.match(out, /meaning drift — demo @ MEANING\.yaml/);
+});
+
 test("renderJson emits stable v1 shape", () => {
   const out = renderJson({
+    commandName: "review",
     meaningFile: "M",
     system: "s",
     version: "1.0.0",
@@ -418,6 +440,7 @@ test("renderJson emits stable v1 shape", () => {
 test("renderSarif produces valid 2.1.0 envelope with rules", () => {
   const out = renderSarif(
     {
+      commandName: "review",
       meaningFile: "M",
       system: "s",
       version: "1.0.0",
@@ -443,4 +466,12 @@ test("renderSarif produces valid 2.1.0 envelope with rules", () => {
   assert.equal(parsed.runs[0].results[0].ruleId, "C-FIN-NO-DOUBLE-PAY-001");
   assert.equal(parsed.runs[0].results[0].level, "error");
   assert.ok(parsed.runs[0].tool.driver.rules.length >= 1);
+});
+
+test("CLI help includes drift command", () => {
+  const out = execFileSync(process.execPath, ["dist/index.js", "--help"], {
+    cwd: fileURLToPath(new URL("../", import.meta.url)),
+    encoding: "utf8",
+  });
+  assert.match(out, /\bdrift\b/);
 });

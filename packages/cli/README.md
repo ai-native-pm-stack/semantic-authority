@@ -1,14 +1,8 @@
 # `@semantic-authority/cli`
 
-The `meaning` CLI scaffolds, validates, and converts `MEANING.yaml` into agent-readable context.
+The `meaning` CLI scaffolds, validates, detects drift against code changes, and converts `MEANING.yaml` into agent-readable context.
 
 ## Install
-
-Published package:
-
-```bash
-npx @semantic-authority/cli init
-```
 
 Local source checkout:
 
@@ -19,40 +13,52 @@ npm run build
 node dist/index.js --help
 ```
 
+Published package (after npm release):
+
+```bash
+npx @semantic-authority/cli init
+```
+
 ## Commands
 
 Create a starter `MEANING.yaml` plus `.claude/meaning-context.md`:
 
 ```bash
-meaning init
+node dist/index.js init
 ```
 
 Validate an artifact:
 
 ```bash
-meaning validate --file ./MEANING.yaml
+node dist/index.js validate --file ./MEANING.yaml
 ```
 
 Fail on warnings as well:
 
 ```bash
-meaning validate --file ./MEANING.yaml --strict
+node dist/index.js validate --file ./MEANING.yaml --strict
 ```
 
 Generate agent context from an existing artifact:
 
 ```bash
-meaning context --file ./MEANING.yaml --output ./.claude/meaning-context.md
+node dist/index.js context --file ./MEANING.yaml --output ./.claude/meaning-context.md
 ```
 
 Review the current diff against declared constraints:
 
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
-meaning review --base origin/main
-meaning review --staged --format json
-meaning review --base origin/main --sarif-output meaning-review.sarif
+node dist/index.js review --base origin/main
+node dist/index.js drift --base origin/main
+node dist/index.js review --staged --format json
+node dist/index.js review --base origin/main --sarif-output meaning-review.sarif
 ```
+
+`review` and `drift` share the same engine today:
+
+- `review` is the PR / CI framing
+- `drift` is the semantic-governance framing
 
 ## Smoke Test
 

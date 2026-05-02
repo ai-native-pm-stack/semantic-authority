@@ -42,7 +42,11 @@ PRD prose, Slack history, meeting notes, or tribal memory. These are useful for 
 The `meaning context` command generates a `.claude/meaning-context.md` file from your MEANING.yaml. This file translates structured YAML into prose instructions that any LLM agent can consume.
 
 ```bash
-npx @semantic-authority/cli context
+# From a source checkout today:
+node packages/cli/dist/index.js context
+
+# After npm publish:
+# npx @semantic-authority/cli context
 ```
 
 The generated file looks like:
@@ -93,6 +97,15 @@ with automated compliance checks and audit trails.
 ---
 
 ## Agent Operating Modes
+
+The modes below are the **recommended operating patterns** for agentic teams building on top of this repo.
+
+Today, the shipped primitives in this repository are:
+
+- `meaning context` for generating agent-facing context from `MEANING.yaml`
+- `meaning review` / `meaning drift` for model-mediated diff review against declared constraints
+
+The roles and flows below show how teams can compose those primitives into broader agent workflows. They are not all separate built-in products or commands.
 
 ### Mode A: Execution (Default)
 

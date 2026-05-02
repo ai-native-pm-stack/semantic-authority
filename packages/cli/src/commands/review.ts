@@ -13,6 +13,7 @@ import { renderSarif } from "../review/render/sarif.js";
 import type { Constraint, MeaningDoc, ReviewResult, Severity } from "../review/types.js";
 
 export interface ReviewOptions {
+  surfaceName?: "review" | "drift";
   meaning: string;
   base?: string;
   diff?: string;
@@ -32,6 +33,7 @@ export interface ReviewOptions {
 
 export async function reviewCommand(args: string[], options: ReviewOptions): Promise<void> {
   try {
+    const surfaceName = options.surfaceName ?? "review";
     const stdinFlag = args.includes("-") || options.stdin;
 
     const meaningPath = resolve(options.meaning);
@@ -146,6 +148,7 @@ export async function reviewCommand(args: string[], options: ReviewOptions): Pro
     );
 
     const result: ReviewResult = {
+      commandName: surfaceName,
       meaningFile: options.meaning,
       system: doc.system,
       version: doc.version,
@@ -176,7 +179,7 @@ export async function reviewCommand(args: string[], options: ReviewOptions): Pro
     } else if (options.format === "sarif") {
       output = renderSarif(result, reviewedConstraints);
     } else {
-      output = renderText(result, { noColor: options.noColor });
+      output = renderText(result, { noColor: options.noColor, commandName: surfaceName });
     }
 
     if (options.output) {

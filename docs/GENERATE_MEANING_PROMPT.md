@@ -12,7 +12,9 @@ Important: this creates a **derived semantic contract**, not a replacement for t
 2. Paste it into your LLM of choice as a system message (or as the first message)
 3. Paste your BRD, PRD, design doc, or requirements document as the follow-up message
 4. Review the generated MEANING.yaml — it is a **draft**, not a final artifact
-5. Run `npx @semantic-authority/cli validate` to check schema compliance
+5. Run validation to check schema compliance
+   Today from a source checkout: `node packages/cli/dist/index.js validate --file MEANING.yaml`
+   After npm publish: `npx @semantic-authority/cli validate --file MEANING.yaml`
 6. Have an engineer or architect review before merging
 
 ---
@@ -141,6 +143,11 @@ The generated MEANING.yaml will be a **draft** with `status: draft`. It will lik
 After editing the generated file:
 
 ```bash
-npx @semantic-authority/cli validate --file MEANING.yaml
-npx @semantic-authority/cli validate --file MEANING.yaml --strict  # treats warnings as errors
+# From a source checkout today:
+node packages/cli/dist/index.js validate --file MEANING.yaml
+node packages/cli/dist/index.js validate --file MEANING.yaml --strict
+
+# After npm publish:
+# npx @semantic-authority/cli validate --file MEANING.yaml
+# npx @semantic-authority/cli validate --file MEANING.yaml --strict
 ```

@@ -362,22 +362,29 @@ Implementation doesn't require sophisticated tooling. Start simple and add enfor
 
 ### Stage 1: Social Enforcement (~1 week to establish)
 
-PR checklists include confirmation that MEANING.yaml was updated if scope or constraints changed. Agents produce drift reports as PR comments. Reviewers check for constraint coverage.
+PR checklists include confirmation that MEANING.yaml was updated if scope or constraints changed. Reviewers check for constraint coverage. Teams may also run `meaning review` locally on sensitive changes, but it is not yet a required gate.
 
 This requires no tooling — just discipline and a modified PR template.
 
 ### Stage 2: Soft Gates (~week 2-4)
 
-CI runs schema validation of MEANING.yaml structure. Drift heuristic checks run automatically. Failures produce warnings but do not block merges. Teams build muscle memory around the workflow.
+CI runs schema validation of MEANING.yaml structure. Teams optionally add `meaning drift` / `meaning review` in non-blocking mode so the drift summary and SARIF annotations are visible without turning every finding into a hard merge stop yet. Teams build muscle memory around the workflow.
 
 ```bash
-npx @semantic-authority/cli validate  # Schema check
-npx @semantic-authority/cli drift     # Drift heuristic
+# from a source checkout today:
+node packages/cli/dist/index.js validate
+node packages/cli/dist/index.js drift --fail-on observe
+node packages/cli/dist/index.js review --fail-on observe
+
+# after npm publish:
+# npx @semantic-authority/cli validate
+# npx @semantic-authority/cli drift --fail-on observe
+# npx @semantic-authority/cli review --fail-on observe
 ```
 
 ### Stage 3: Hard Gates (~week 4+)
 
-Block-level constraints become actual merge or deploy gates. A PR that violates a block-level constraint cannot merge until the violation is resolved or an exception is formally documented.
+Block-level constraints become actual merge or deploy gates. A PR that the review path flags at `block` severity cannot merge until the violation is resolved or an exception is formally documented.
 
 Exceptions require a Drift Record with an owner, rationale, and expiry date.
 

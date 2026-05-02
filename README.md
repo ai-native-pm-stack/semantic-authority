@@ -4,7 +4,7 @@
 
 CLAUDE.md tells agents *how to work*. **MEANING.yaml tells them *what the work must mean*.**
 
-> **Honest status (May 2026):** This repo now includes the *declaration*, *context*, and *enforcement* layers. `meaning review` is implemented in-source, tested locally, and the GitHub Action wiring is present in this repo. The remaining release gap is distribution: the public npm package for `@semantic-authority/cli` has not been published yet, so the turnkey `npx` / external GitHub Action install path is not live yet. Until npm is published, use the local source checkout path in [`packages/cli/README.md`](./packages/cli/README.md).
+Semantic Authority is the framework. `MEANING.yaml` is the canonical artifact. Humans author and ratify it; humans, agents, and CI consume it in different ways.
 
 ---
 
@@ -119,13 +119,13 @@ It is a shared semantic layer with different projections for each part of the te
 | **Artifact** | MEANING.yaml declares what the system means | PM, Architect, Tech Lead (authors); Devs + Agents (consumers) | ✅ Shipped |
 | **Schema validation** | `meaning validate` + Action confirm the file is well-formed | CI | ✅ Shipped |
 | **Agent context** | `meaning context` emits a Claude-loadable context file | Devs, Agents | ✅ Shipped (Claude); Cursor/Copilot emitters are roadmap |
-| **Semantic review + gating** | `meaning review <diff>` asks an LLM judge whether a diff plausibly puts any constraint at risk and can fail CI on `block`-level findings | CI, Devs | ✅ Implemented in-source; public install path pending npm publish |
+| **Semantic drift detection + gating** | `meaning drift <diff>` / `meaning review <diff>` ask an LLM judge whether a diff plausibly puts any constraint at risk and can fail CI on `block`-level findings | CI, Devs | ✅ Implemented in-source; public install path pending npm publish |
 
 ---
 
 ## Quickstart
 
-> **Current install path:** until `@semantic-authority/cli` is published to npm, build the CLI from this repo once with `npm install --prefix packages/cli && npm run build --prefix packages/cli`, then replace `meaning ...` / `npx @semantic-authority/cli ...` with `node packages/cli/dist/index.js ...`.
+Until `@semantic-authority/cli` is published to npm, build the CLI from this repo once with `npm install --prefix packages/cli && npm run build --prefix packages/cli`, then run commands via `node packages/cli/dist/index.js ...`.
 
 ### 1. Create a MEANING.yaml
 
@@ -163,7 +163,7 @@ The composite GitHub Action is implemented in [action/action.yml](./action/actio
 
 What you can do right now:
 
-- run `meaning validate`, `meaning context`, and `meaning review` from a local source checkout
+- run `meaning validate`, `meaning context`, `meaning review`, and `meaning drift` from a local source checkout
 - use the Action definition in this repo as the reference workflow shape
 - publish the npm package later to make `npx` and external Action usage turnkey
 
@@ -193,9 +193,11 @@ jobs:
 
 ---
 
-## `meaning review` — Enforcement on every PR
+## `meaning drift` / `meaning review` — Drift Detection On Every PR
 
-`meaning review <diff>` is the command that makes the declaration layer operational in code review. It loads `MEANING.yaml`, resolves a code diff, and asks an LLM judge whether any declared constraint is plausibly at risk. Findings cite the constraint ID, file, and line. CI can fail when findings meet or exceed your `--fail-on` threshold.
+`meaning drift <diff>` is the semantic-drift surface. `meaning review <diff>` is the PR / CI surface. Today they share the same engine.
+
+Both commands load `MEANING.yaml`, resolve a code diff, and ask an LLM judge whether any declared constraint is plausibly at risk. Findings cite the constraint ID, file, and line. CI can fail when findings meet or exceed your `--fail-on` threshold.
 
 This is the missing piece between "we wrote down the constraints" and "the constraints actually constrain the code."
 
@@ -212,9 +214,11 @@ npm run build --prefix packages/cli
 export ANTHROPIC_API_KEY=sk-ant-...
 
 # From a checkout of this repo:
+node packages/cli/dist/index.js drift --base origin/main
 node packages/cli/dist/index.js review --base origin/main
 
 # After npm publish, the same command becomes:
+# meaning drift --base origin/main
 # meaning review --base origin/main
 ```
 
@@ -245,6 +249,7 @@ Cost: $0.043 (input 12,400 tok, output 1,820 tok, 1 call)
 Common variants:
 
 ```bash
+meaning drift --base origin/main                    # drift-focused local run
 meaning review --staged                            # pre-commit check
 meaning review --base origin/release/1.4           # non-main base
 meaning review --diff path/to/patch.diff           # from file
@@ -332,18 +337,41 @@ See [examples/invoice-processor/SCENARIOS.md](./examples/invoice-processor/SCENA
 - a block-level audit trail regression
 - a deliberately vague constraint that returns `insufficient_context`
 
-Current scope note:
+See [examples/invoice-processor/AGENT_EXAMPLE.md](./examples/invoice-processor/AGENT_EXAMPLE.md) for a small before/after illustration of how the same request behaves with and without `MEANING.yaml` context.
 
-- Constraints are first-class review targets today.
+Scope today:
+
+- Constraints are first-class drift / review targets today.
 - Non-goals guide humans and agents, but they are **not yet compiled into first-class review rules** by `meaning review`.
 - `insufficient_context` is the signal that a constraint is too vague to review reliably and should be sharpened.
 
-### Current review limitations
+### Limitations
 
 - Reasons over the diff plus full text of changed files. Does not chase call graphs across files.
 - Anthropic-only. Provider abstraction is a v0.3.0 concern.
 - No cross-run finding cache yet.
 - Auto-fix is not in scope; suggestions are text only.
+
+### Evaluation
+
+This repo currently includes:
+
+- deterministic validation tests for the artifact and CLI behavior
+- seeded review scenarios for constraint-risk detection
+- a simple agent-behavior illustration in the invoice-processor example
+
+It does **not** yet include:
+
+- a labeled benchmark with measured precision / recall
+- telemetry from external repos
+- a published before/after incident dataset
+
+That evidence layer is the next step. The most useful first measurements are:
+
+- precision of `block` findings on labeled PRs
+- recall on seeded constraint violations
+- rate of `insufficient_context` findings that lead to sharper constraints
+- reduction in scope-drift or non-goal violations after adoption
 
 Full design, success metrics, risks, and engineering workstreams: [PRD_MEANING_REVIEW.md](./PRD_MEANING_REVIEW.md).
 
@@ -440,6 +468,7 @@ drift_policy:
 **Architects & Tech Leads** author constraints and enforcement levels. They run `meaning validate` during design reviews. They review cross-system meaning coherence when constraints in one service affect another.
 
 **Engineers** read MEANING.yaml before writing code. They can run `meaning review` locally from source today, and once npm is published the same workflow becomes a drop-in CLI / Action experience with inline PR annotations citing the constraint IDs their diff puts at risk.
+They can also run `meaning drift` as the same engine framed explicitly as semantic drift detection.
 
 **AI Agents** (Claude Code today; Cursor and Copilot emitters on the v0.3.0 roadmap) receive auto-generated context from `meaning context`. They know the system's goals, respect its non-goals, honor its constraints by ID, and understand its trade-offs before writing a single line of code.
 
@@ -511,7 +540,14 @@ semantic-authority/
 │
 └── examples/
     └── invoice-processor/ ← Worked example
-        └── MEANING.yaml
+        ├── MEANING.yaml
+        ├── SCENARIOS.md
+        ├── AGENT_EXAMPLE.md
+        └── scenarios/
+            ├── 01-pii-redaction.diff
+            ├── 02-audit-trail.diff
+            ├── 03-vague-runbook.diff
+            └── MEANING.vague.yaml
 ```
 
 ---

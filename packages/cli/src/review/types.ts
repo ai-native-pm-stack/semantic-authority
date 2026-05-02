@@ -79,6 +79,7 @@ export interface InsufficientContextItem {
 }
 
 export interface ReviewResult {
+  commandName?: "review" | "drift";
   meaningFile: string;
   system: string;
   version: string;

@@ -4,7 +4,9 @@ This action wraps the `meaning` CLI so pull requests can validate `MEANING.yaml`
 
 ## Usage
 
-After the repo has a stable release tag, reference that tag:
+This repo includes the composite Action definition now. External usage becomes turnkey after the npm package for `@semantic-authority/cli` is published, because the Action currently installs the CLI from npm.
+
+Target external usage after npm publish:
 
 ```yaml
 name: Meaning Gate
@@ -22,7 +24,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: ai-native-pm-stack/semantic-authority/action@v1
+      - uses: ai-native-pm-stack/semantic-authority/action@v0.1.0
         with:
           mode: both
           fail-on: block
@@ -30,7 +32,9 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
-Before the first tagged release, use the default branch or a commit SHA instead:
+Until npm publish, treat this Action README as the reference workflow shape and run the CLI from source for local or in-repo testing.
+
+For repo-local development, use the default branch or a commit SHA:
 
 ```yaml
 - uses: ai-native-pm-stack/semantic-authority/action@main
