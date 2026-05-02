@@ -1,0 +1,42 @@
+system: invoice-processor
+version: 1.0.0
+status: draft
+owner: finance-engineering
+last_reviewed: 2026-05-02
+
+goal:
+  primary: >
+    Enable finance teams to submit, approve, and track invoices
+    with controlled operational and compliance workflows.
+  success_criteria:
+    - "Approvals are processed consistently and operationally recoverable"
+  non_goals:
+    - "Does not define a complete incident-management framework"
+    - "Does not specify all runbook details for every failure mode"
+    - "Does not replace audit controls defined elsewhere"
+    - "Does not cover payment execution behavior"
+    - "Does not model external compliance systems"
+
+constraints:
+  - id: C-OPS-RUNBOOK-009
+    description: "Approval runbooks must remain sufficient for operations."
+    category: operational
+    enforcement: warn
+    owner: sre
+    rationale: "Incomplete runbooks can slow incident response."
+    source: declared
+    confidence: low
+
+drift_policy:
+  review_cadence: monthly
+  enforcement_rules:
+    block: "Violation must not merge without remediation or approved drift record"
+    warn: "Acknowledgement required with owner and revisit date"
+    observe: "Logged for trend analysis; reviewed periodically"
+
+provenance:
+  source_summary: "Seeded example for demonstrating insufficient_context behavior."
+  assumptions:
+    - "The runbook standard is intentionally underspecified for this fixture."
+  clarifications_needed:
+    - "What specific operational content must always be present in approval runbooks?"

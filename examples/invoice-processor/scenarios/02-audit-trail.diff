@@ -1,0 +1,22 @@
+diff --git a/src/invoices/approve.ts b/src/invoices/approve.ts
+index 1a4f0d2..2f91d6a 100644
+--- a/src/invoices/approve.ts
++++ b/src/invoices/approve.ts
+@@ -41,13 +41,10 @@ export async function approveInvoice(invoiceId: string, actor: User) {
+   const invoice = await loadInvoice(invoiceId);
+   assertApprovalLimit(actor, invoice.amountCents);
+ 
+-  await auditLog.append({
+-    entity: "invoice",
+-    entity_id: invoice.id,
+-    action: "approved",
+-    actor_id: actor.id,
+-  });
+-
+   await invoices.update(invoice.id, {
+     status: "approved",
+     approved_by: actor.id,
+   });
++
++  logger.info("invoice approved", { invoice_id: invoice.id, actor_id: actor.id });
+ }

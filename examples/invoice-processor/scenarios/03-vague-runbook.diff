@@ -1,0 +1,14 @@
+diff --git a/docs/runbooks/invoice-approvals.md b/docs/runbooks/invoice-approvals.md
+index 8a2eaf1..4cc1f07 100644
+--- a/docs/runbooks/invoice-approvals.md
++++ b/docs/runbooks/invoice-approvals.md
+@@ -12,7 +12,7 @@ Approval incidents
+ 
+ ## Response steps
+ 
+-1. Escalate to finance-engineering and compliance.
+-2. Record the incident in the approvals audit log.
+-3. Capture remediation owner and ETA.
++1. Escalate to finance-engineering only.
++2. Capture remediation owner when available.
++3. Follow local team process for the rest.

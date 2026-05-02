@@ -1,6 +1,6 @@
 # How to Write a MEANING.yaml
 
-A practical guide for PMs, architects, and tech leads.
+A practical guide for PMs, architects, tech leads, and anyone responsible for making system intent explicit.
 
 ---
 
@@ -18,6 +18,17 @@ It declares:
 - How violations are handled (enforcement)
 
 It is not a PRD. It is not a design doc. It is not an implementation plan. It defines **limits, not features.**
+
+That does not make it “technical only.”
+
+In a healthy team:
+
+- PMs use it to make scope boundaries and trade-offs explicit
+- architects and tech leads use it to encode invariants and ownership
+- engineers use it to keep implementation aligned
+- agents use generated context derived from it
+
+The same semantic contract serves different roles without forcing them into the same interface.
 
 ---
 
@@ -39,6 +50,18 @@ The problems MEANING.yaml addresses are not new. Teams already have artifacts. B
 MEANING.yaml creates a single artifact that combines the goal-setting of PRDs, the trade-off documentation of ADRs, the constraint specificity of compliance docs, and the machine-legibility of schemas — while living in the repo alongside code.
 
 The contribution is not new ideas. It is new **integration**.
+
+That does **not** mean MEANING.yaml replaces those source artifacts.
+
+Treat it as the **minimum canonical subset** of intent you want humans, agents, and CI to share:
+
+- PRDs still carry narrative, user value, roadmap, and stakeholder context
+- ADRs and RFCs still carry technical history and alternatives
+- OpenAPI and schemas still carry interface shape
+- MEANING.yaml carries the constraints, non-goals, and trade-offs worth making machine-consumable and reviewable
+
+If you copy everything into MEANING.yaml, it becomes another stale document.
+If you keep only what must be shared and checked, it becomes useful.
 
 ---
 
@@ -176,6 +199,19 @@ Specify:
 - Review cadence (monthly, quarterly, post-incident)
 - Exception process
 - Required drift record fields
+
+Do not rely on cadence alone. The practical pattern is:
+
+- **event-driven review** when meaning changes
+- **scheduled review** as a backstop
+
+Good event triggers:
+
+- a new constraint or non-goal is introduced
+- an incident reveals an unstated assumption
+- a PR intentionally crosses a declared boundary
+- an architecture decision changes what a constraint depends on
+- an agent or reviewer returns `insufficient_context`
 
 **Drift record fields:**
 - `drift_id`

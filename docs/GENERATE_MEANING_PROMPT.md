@@ -2,6 +2,8 @@
 
 Use this prompt with any LLM (Claude, ChatGPT, etc.) to convert an existing product document into a draft MEANING.yaml.
 
+Important: this creates a **derived semantic contract**, not a replacement for the source PRD/BRD/ADR. The source docs remain the evidence; `MEANING.yaml` is the machine-consumable summary of what must be shared and reviewed.
+
 ---
 
 ## How to Use
@@ -128,6 +130,7 @@ The generated MEANING.yaml will be a **draft** with `status: draft`. It will lik
 - **Enforcement level calibration** — the LLM tends to over-assign `block`; review whether `warn` is more appropriate
 - **Non-goal expansion** — the LLM may not know your organizational context well enough to catch all implicit scope creep risks
 - **Trade-off documentation** — BRDs often omit rejected alternatives; you may need to add these manually
+- **Source-of-truth reconciliation** — confirm that the draft is the minimal machine-consumable subset of your source docs, not a second PRD with different wording
 
 **The goal is a 70-80% complete first draft, not a finished artifact.** The remaining 20-30% requires the domain knowledge that only you have.
 

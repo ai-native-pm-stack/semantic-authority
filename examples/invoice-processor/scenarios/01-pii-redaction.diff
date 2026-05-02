@@ -1,0 +1,16 @@
+diff --git a/src/api/serializers/invoice.ts b/src/api/serializers/invoice.ts
+index 2d0f1ab..8f6c1e2 100644
+--- a/src/api/serializers/invoice.ts
++++ b/src/api/serializers/invoice.ts
+@@ -18,9 +18,10 @@ export function serializeInvoice(invoice: Invoice) {
+   return {
+     id: invoice.id,
+     vendor_name: invoice.vendorName,
+-    bank_account_number: undefined,
+     amount_cents: invoice.amountCents,
+     currency: invoice.currency,
+     status: invoice.status,
++    bank_account_number: invoice.vendorBankAccountNumber,
++    bank_routing_number: invoice.vendorRoutingNumber,
+   };
+ }

@@ -1,6 +1,6 @@
 # Semantic Authority
 
-**Make system meaning explicit, machine-legible, and — with `meaning review` — enforceable on every PR.**
+**Make system meaning explicit, machine-legible, and reviewable — with optional merge gating — on every PR.**
 
 CLAUDE.md tells agents *how to work*. **MEANING.yaml tells them *what the work must mean*.**
 
@@ -15,6 +15,39 @@ AI has made execution cheap. Agents generate code, write tests, and ship feature
 When a constraint is unstated, an agent doesn't ask for clarification. It picks a plausible interpretation and executes. **Silence is interpreted as permission.**
 
 The bottleneck has moved. It is no longer "can we build this?" It is **"do we agree on what this should mean?"**
+
+---
+
+## What MEANING Is — and Is Not
+
+`MEANING.yaml` does **not** replace your PRD, ADRs, RFCs, OpenAPI spec, or `CLAUDE.md`.
+
+It is the **smallest canonical subset of system intent** that humans, agents, and CI should all share.
+
+- **PRD / BRD** explains the product narrative, user value, market context, and roadmap.
+- **ADR / RFC** records design decisions, alternatives, and technical history.
+- **OpenAPI / schema files** define interface shape and structure.
+- **CLAUDE.md / AGENTS.md / prompts** tell agents how to work in a repo.
+- **MEANING.yaml** declares what must hold, what is explicitly out of scope, and which constraints are important enough to review or gate on.
+
+Use this rule of thumb:
+
+- If it needs prose, politics, or historical context, keep it in the source docs.
+- If it must be machine-consumable by agents or checked in review, promote the **minimal canonical form** into `MEANING.yaml`.
+
+That means `MEANING.yaml` is a **supplement and compiler target**, not a replacement artifact.
+
+It also serves **two different consumers**:
+
+- humans need a precise, governable declaration they can review and update
+- agents need a generated, repo-local context projection they can consume during execution
+
+That is why this repo keeps:
+
+- `MEANING.yaml` as the canonical semantic contract
+- `.claude/meaning-context.md` as the generated agent-facing projection
+
+One source of truth. Different consumption modes.
 
 ---
 
@@ -55,6 +88,29 @@ The bottleneck has moved. It is no longer "can we build this?" It is **"do we ag
   └──────────┘ └──────────┘ └──────────┘
 ```
 
+## Useful To Every Role
+
+Semantic Authority works best when it is **layered**, not when everyone is forced through the same interface.
+
+The same repo should offer different kinds of value:
+
+| Audience | What They Need | Where They Start |
+|-------|------|-----|
+| **PMs / non-technical operators** | A way to make goals, non-goals, trade-offs, and assumptions explicit | [GUIDE.md](./GUIDE.md), [docs/GENERATE_MEANING_PROMPT.md](./docs/GENERATE_MEANING_PROMPT.md) |
+| **Engineers / architects** | A canonical semantic contract that can be validated, reviewed, and discussed in PRs | [README.md](./README.md), [packages/cli/README.md](./packages/cli/README.md), [examples/invoice-processor/SCENARIOS.md](./examples/invoice-processor/SCENARIOS.md) |
+| **Agents** | A machine-consumable source of truth and a generated execution context | [AGENTS.md](./AGENTS.md), `meaning context`, `.claude/meaning-context.md` |
+| **Leads / the organization** | Lower drift, clearer ownership, and a shared vocabulary for what the system is allowed to mean | `MEANING.yaml`, review outputs, drift policy, PR discussions |
+
+That is the intended shape of the project:
+
+- not just a PM artifact
+- not just a dev tool
+- not just an agent prompt file
+
+It is a shared semantic layer with different projections for each part of the team.
+
+---
+
 **Three layers:**
 
 | Layer | What | Who | Status |
@@ -63,7 +119,7 @@ The bottleneck has moved. It is no longer "can we build this?" It is **"do we ag
 | **Artifact** | MEANING.yaml declares what the system means | PM, Architect, Tech Lead (authors); Devs + Agents (consumers) | ✅ Shipped |
 | **Schema validation** | `meaning validate` + Action confirm the file is well-formed | CI | ✅ Shipped |
 | **Agent context** | `meaning context` emits a Claude-loadable context file | Devs, Agents | ✅ Shipped (Claude); Cursor/Copilot emitters are roadmap |
-| **Semantic enforcement** | `meaning review <diff>` asks an LLM judge whether a diff risks any constraint and blocks merges on `block`-level findings | CI, Devs | ✅ Implemented in-source; public install path pending npm publish |
+| **Semantic review + gating** | `meaning review <diff>` asks an LLM judge whether a diff plausibly puts any constraint at risk and can fail CI on `block`-level findings | CI, Devs | ✅ Implemented in-source; public install path pending npm publish |
 
 ---
 
@@ -139,9 +195,14 @@ jobs:
 
 ## `meaning review` — Enforcement on every PR
 
-`meaning review <diff>` is the command that makes the declaration layer have teeth. It loads `MEANING.yaml`, resolves a code diff, and asks an LLM judge whether any declared constraint is at risk. Findings cite the constraint ID, file, and line. Block-level findings fail CI.
+`meaning review <diff>` is the command that makes the declaration layer operational in code review. It loads `MEANING.yaml`, resolves a code diff, and asks an LLM judge whether any declared constraint is plausibly at risk. Findings cite the constraint ID, file, and line. CI can fail when findings meet or exceed your `--fail-on` threshold.
 
 This is the missing piece between "we wrote down the constraints" and "the constraints actually constrain the code."
+
+Two important truths:
+
+- `meaning validate` is **deterministic** schema and semantic hygiene validation.
+- `meaning review` is **probabilistic** model-mediated review. It is best used as an additional review-and-gate layer alongside tests, type-checking, and human review, not as formal proof that a change is safe.
 
 ### Local developer flow
 
@@ -253,12 +314,29 @@ Common situations:
 - **Diff too large for budget** → exit 3, "split or raise `--budget-usd`."
 - **Anthropic outage** → retries, then exit 4. Teams can set `continue-on-error: true` until the gate is trusted.
 - **Vague constraint** → verdict comes back `insufficient_context`; surfaced as a notice, not a block. That is the signal to sharpen `MEANING.yaml`.
+- **False positives / false negatives** → this is why `meaning review` should be framed as constraint-risk detection, not proof. Keep the gate narrow at first (`fail-on: block`), keep tests in place, and tune constraints with real review feedback.
 
 ### What this changes in day-to-day work
 
 - `MEANING.yaml` becomes a living artifact because the judge cites it on every PR. Stale or vague constraints get noticed.
 - Constraint IDs become real foreign keys — they show up in PR annotations, SARIF rules, and review comments.
-- The "enforce meaning" claim becomes literally true: a PR that weakens `C-FIN-NO-DOUBLE-PAY-001` cannot merge to `main` without an explicit override.
+- Declared constraints can now participate in review and merge gating instead of sitting as inert prose in a document.
+
+### Reproducible review scenarios
+
+The fastest way to understand the mechanism is to run it against seeded diffs instead of trusting the manifesto.
+
+See [examples/invoice-processor/SCENARIOS.md](./examples/invoice-processor/SCENARIOS.md) for three concrete cases:
+
+- a block-level PII redaction regression
+- a block-level audit trail regression
+- a deliberately vague constraint that returns `insufficient_context`
+
+Current scope note:
+
+- Constraints are first-class review targets today.
+- Non-goals guide humans and agents, but they are **not yet compiled into first-class review rules** by `meaning review`.
+- `insufficient_context` is the signal that a constraint is too vague to review reliably and should be sharpened.
 
 ### Current review limitations
 
@@ -366,6 +444,26 @@ drift_policy:
 **AI Agents** (Claude Code today; Cursor and Copilot emitters on the v0.3.0 roadmap) receive auto-generated context from `meaning context`. They know the system's goals, respect its non-goals, honor its constraints by ID, and understand its trade-offs before writing a single line of code.
 
 **CI Pipelines** can already use the in-repo implementation as the reference gating flow. The public turnkey path for external repos lands once `@semantic-authority/cli` is published to npm, because the composite Action currently installs the CLI from npm.
+
+---
+
+## Keeping It Fresh
+
+A monthly review cadence alone is not enough. `MEANING.yaml` stays useful when review is triggered by events, not just calendars.
+
+Update or revisit it when:
+
+- a new `block`-level invariant appears
+- an incident reveals an unstated assumption
+- `meaning review` returns `insufficient_context`
+- a team intentionally crosses a declared non-goal
+- a release changes system boundaries or trade-offs
+- an ADR materially changes architecture that a constraint depends on
+
+The best cadence is usually:
+
+- **event-driven review** for meaningful change
+- **periodic review** as a backstop
 
 ---
 
