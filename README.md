@@ -4,9 +4,7 @@
 
 CLAUDE.md tells agents *how to work*. **MEANING.yaml tells them *what the work must mean*.**
 
-> **Honest status (v0.1.x):** Today this project ships the *declaration* and *context* layers — `init`, `validate`, and `context`. The *enforcement* layer (`meaning review`) is in active development for v0.2.0; it is the command that turns declared constraints into PR-blocking checks by asking an LLM judge whether a diff puts any constraint at risk. See [PRD_MEANING_REVIEW.md](./PRD_MEANING_REVIEW.md) for the full design and [the usage guide below](#meaning-review--enforcement-on-every-pr).
->
-> Prior to `meaning review`, the GitHub Action validates that `MEANING.yaml` exists and conforms to the schema. That is not the same as enforcing the meaning — it enforces the existence of the meaning file. The README has been updated to reflect that distinction honestly.
+> **Honest status (May 2026):** This repo now includes the *declaration*, *context*, and *enforcement* layers. `meaning review` is implemented in-source, tested locally, and the GitHub Action wiring is present in this repo. The remaining release gap is distribution: the public npm package for `@semantic-authority/cli` has not been published yet, so the turnkey `npx` / external GitHub Action install path is not live yet. Until npm is published, use the local source checkout path in [`packages/cli/README.md`](./packages/cli/README.md).
 
 ---
 
@@ -65,26 +63,30 @@ The bottleneck has moved. It is no longer "can we build this?" It is **"do we ag
 | **Artifact** | MEANING.yaml declares what the system means | PM, Architect, Tech Lead (authors); Devs + Agents (consumers) | ✅ Shipped |
 | **Schema validation** | `meaning validate` + Action confirm the file is well-formed | CI | ✅ Shipped |
 | **Agent context** | `meaning context` emits a Claude-loadable context file | Devs, Agents | ✅ Shipped (Claude); Cursor/Copilot emitters are roadmap |
-| **Semantic enforcement** | `meaning review <diff>` asks an LLM judge whether a diff risks any constraint and blocks merges on `block`-level findings | CI, Devs | 🚧 v0.2.0 — see [usage guide](#meaning-review--enforcement-on-every-pr) |
+| **Semantic enforcement** | `meaning review <diff>` asks an LLM judge whether a diff risks any constraint and blocks merges on `block`-level findings | CI, Devs | ✅ Implemented in-source; public install path pending npm publish |
 
 ---
 
 ## Quickstart
 
+> **Current install path:** until `@semantic-authority/cli` is published to npm, build the CLI from this repo once with `npm install --prefix packages/cli && npm run build --prefix packages/cli`, then replace `meaning ...` / `npx @semantic-authority/cli ...` with `node packages/cli/dist/index.js ...`.
+
 ### 1. Create a MEANING.yaml
 
 ```bash
-npx @semantic-authority/cli init
+node packages/cli/dist/index.js init
+# After npm publish:
+# npx @semantic-authority/cli init
 ```
 
 Interactive wizard asks: system name, primary goal, non-goals, first constraints. Generates `MEANING.yaml` at your repo root and `.claude/meaning-context.md` for agent consumption.
 
-If the npm package is not published yet, use the local source instructions in [`packages/cli/README.md`](./packages/cli/README.md).
-
 ### 2. Validate it
 
 ```bash
-npx @semantic-authority/cli validate
+node packages/cli/dist/index.js validate
+# After npm publish:
+# npx @semantic-authority/cli validate
 ```
 
 Checks schema, constraint ID format, minimum non-goals, enforcement levels.
@@ -92,12 +94,24 @@ Checks schema, constraint ID format, minimum non-goals, enforcement levels.
 ### 3. Generate agent context
 
 ```bash
-npx @semantic-authority/cli context
+node packages/cli/dist/index.js context
+# After npm publish:
+# npx @semantic-authority/cli context
 ```
 
 Converts MEANING.yaml into a `.claude/meaning-context.md` that Claude Code, Cursor, or any LLM agent can consume. Append to your CLAUDE.md or load as a skill.
 
-### 4. Add CI schema validation (today)
+### 4. CI status
+
+The composite GitHub Action is implemented in [action/action.yml](./action/action.yml), including `mode: review`, one-pass SARIF generation, and merge gating. It is **not yet turnkey for external repos** because it currently installs `@semantic-authority/cli` from npm, and the npm package is not published yet.
+
+What you can do right now:
+
+- run `meaning validate`, `meaning context`, and `meaning review` from a local source checkout
+- use the Action definition in this repo as the reference workflow shape
+- publish the npm package later to make `npx` and external Action usage turnkey
+
+After npm publish, this is the intended external CI workflow:
 
 ```yaml
 # .github/workflows/meaning.yml
@@ -106,20 +120,20 @@ on: [pull_request]
 jobs:
   meaning:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - uses: actions/checkout@v4
-      # Use @main until the first release tag exists, then pin to @v1.
-      - uses: ai-native-pm-stack/semantic-authority/action@main
         with:
-          validate: true
-          gate: true
+          fetch-depth: 0
+      - uses: ai-native-pm-stack/semantic-authority/action@v0.1.0
+        with:
+          mode: both
+          fail-on: block
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
-
-This validates that `MEANING.yaml` is well-formed and present. It does **not** check whether your code change respects the meaning — that is what `meaning review` (below) is for.
-
-### 5. Enable semantic enforcement (v0.2.0)
-
-Once `meaning review` ships, add `mode: review` to the same workflow to gate merges on whether a PR diff puts any declared constraint at risk. Full guide in the next section.
 
 ---
 
@@ -132,13 +146,15 @@ This is the missing piece between "we wrote down the constraints" and "the const
 ### Local developer flow
 
 ```bash
-npm install -g @semantic-authority/cli
+npm install --prefix packages/cli
+npm run build --prefix packages/cli
 export ANTHROPIC_API_KEY=sk-ant-...
 
-cd my-repo
-git checkout -b fix/payment-retry
-# ... edit code ...
-meaning review                    # diff = current branch vs main
+# From a checkout of this repo:
+node packages/cli/dist/index.js review --base origin/main
+
+# After npm publish, the same command becomes:
+# meaning review --base origin/main
 ```
 
 Output:
@@ -193,7 +209,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
-      - uses: ai-native-pm-stack/semantic-authority/action@v1
+      # This is the post-npm-publish path. Until then, use the in-repo
+      # CLI from source as described above.
+      - uses: ai-native-pm-stack/semantic-authority/action@v0.1.0
         with:
           mode: review
           base: ${{ github.base_ref }}
@@ -212,10 +230,10 @@ What the developer sees on the PR:
 
 A developer adds a retry loop to `submitPayment()` and pushes the branch.
 
-1. CI runs `meaning review --base main --format sarif`.
+1. CI runs `meaning review --base origin/main --format text --sarif-output meaning-review.sarif`.
 2. The CLI loads `MEANING.yaml`, resolves the diff, and pre-filters constraints to those whose `path_globs` match the changed files plus all `block`-level constraints.
-3. It calls Claude with the constraints + diff + full text of `submit.ts`. Claude returns one finding via a forced `report_findings` tool call.
-4. SARIF is uploaded; the PR check goes red; an annotation lands on `src/payments/submit.ts:42` citing `C-FIN-NO-DOUBLE-PAY-001`.
+3. It calls Claude once with the constraints + diff. Claude returns one finding via a forced `report_findings` tool call.
+4. The same review result is rendered to both the workflow summary and SARIF; SARIF is uploaded; the PR check goes red; an annotation lands on `src/payments/submit.ts:42` citing `C-FIN-NO-DOUBLE-PAY-001`.
 5. Developer reads the rationale, adds the idempotency assert, pushes again.
 6. CI re-runs; the judge now sees the assert in the diff; finding clears; check goes green; merge unblocked.
 
@@ -242,7 +260,7 @@ Common situations:
 - Constraint IDs become real foreign keys — they show up in PR annotations, SARIF rules, and review comments.
 - The "enforce meaning" claim becomes literally true: a PR that weakens `C-FIN-NO-DOUBLE-PAY-001` cannot merge to `main` without an explicit override.
 
-### Limitations (v0.2.0)
+### Current review limitations
 
 - Reasons over the diff plus full text of changed files. Does not chase call graphs across files.
 - Anthropic-only. Provider abstraction is a v0.3.0 concern.
@@ -343,11 +361,11 @@ drift_policy:
 
 **Architects & Tech Leads** author constraints and enforcement levels. They run `meaning validate` during design reviews. They review cross-system meaning coherence when constraints in one service affect another.
 
-**Engineers** read MEANING.yaml before writing code. With `meaning review` (v0.2.0), they get inline PR annotations citing the constraint IDs their diff puts at risk; today they cite IDs manually in PR descriptions.
+**Engineers** read MEANING.yaml before writing code. They can run `meaning review` locally from source today, and once npm is published the same workflow becomes a drop-in CLI / Action experience with inline PR annotations citing the constraint IDs their diff puts at risk.
 
 **AI Agents** (Claude Code today; Cursor and Copilot emitters on the v0.3.0 roadmap) receive auto-generated context from `meaning context`. They know the system's goals, respect its non-goals, honor its constraints by ID, and understand its trade-offs before writing a single line of code.
 
-**CI Pipelines** today run schema validation on every PR. Once `meaning review` ships, the same workflow gains semantic enforcement: an LLM judge reads the diff against the constraints and blocks merges when `enforcement: block` constraints are at risk.
+**CI Pipelines** can already use the in-repo implementation as the reference gating flow. The public turnkey path for external repos lands once `@semantic-authority/cli` is published to npm, because the composite Action currently installs the CLI from npm.
 
 ---
 
@@ -359,7 +377,7 @@ The `.claude/` directory is **not** part of this package. It is a generated **ou
 |------|---------------|----------------|------------|
 | `MEANING.yaml` | **Your repo root** | You (human) | ✅ Yes — this is your source of truth |
 | `.claude/meaning-context.md` | **Your repo** `.claude/` | `meaning context` (auto-generated) | ❌ No — regenerate from MEANING.yaml anytime |
-| `@semantic-authority/cli` | **npm registry** | This project | N/A — installed as dependency or run via npx |
+| `@semantic-authority/cli` | **This repo today; npm registry after publish** | This project | N/A — run from `packages/cli/dist/index.js` today, then via `npx` / global install after npm publish |
 
 **Flow:** You write `MEANING.yaml` → CLI reads it → generates `.claude/meaning-context.md` → Claude Code auto-loads it.
 
@@ -386,7 +404,7 @@ semantic-authority/
 ├── packages/cli/          ← The `meaning` CLI
 │   ├── package.json
 │   ├── src/
-│   │   ├── commands/      ← init, validate, context
+│   │   ├── commands/      ← init, validate, context, review
 │   │   └── schema/        ← JSON Schema for MEANING.yaml
 │   └── tests/
 │
