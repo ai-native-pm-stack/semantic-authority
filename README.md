@@ -1,10 +1,16 @@
 # Semantic Authority
 
-**Make system meaning explicit, machine-legible, and reviewable — with optional merge gating — on every PR.**
+**Turn product intent into machine-legible meaning that humans, agents, and CI can share — and review against real code changes.**
 
 CLAUDE.md tells agents *how to work*. **MEANING.yaml tells them *what the work must mean*.**
 
 Semantic Authority is the framework. `MEANING.yaml` is the canonical artifact. Humans author and ratify it; humans, agents, and CI consume it in different ways.
+
+This is the **meaning layer** of the AI Native PM Stack:
+
+- **PMs / product leaders** make intent explicit
+- **engineers and agents** execute within that declared meaning
+- **CI** reviews and gates drift against the same contract
 
 ---
 
@@ -20,9 +26,7 @@ The bottleneck has moved. It is no longer "can we build this?" It is **"do we ag
 
 ## What MEANING Is — and Is Not
 
-`MEANING.yaml` does **not** replace your PRD, ADRs, RFCs, OpenAPI spec, or `CLAUDE.md`.
-
-It is the **smallest canonical subset of system intent** that humans, agents, and CI should all share.
+`MEANING.yaml` does **not** replace your PRD, ADRs, RFCs, OpenAPI spec, or `CLAUDE.md`. It is the **smallest canonical subset of system intent** that humans, agents, and CI should all share.
 
 - **PRD / BRD** explains the product narrative, user value, market context, and roadmap.
 - **ADR / RFC** records design decisions, alternatives, and technical history.
@@ -30,119 +34,59 @@ It is the **smallest canonical subset of system intent** that humans, agents, an
 - **CLAUDE.md / AGENTS.md / prompts** tell agents how to work in a repo.
 - **MEANING.yaml** declares what must hold, what is explicitly out of scope, and which constraints are important enough to review or gate on.
 
-Use this rule of thumb:
+Rule of thumb:
 
 - If it needs prose, politics, or historical context, keep it in the source docs.
 - If it must be machine-consumable by agents or checked in review, promote the **minimal canonical form** into `MEANING.yaml`.
 
-That means `MEANING.yaml` is a **supplement and compiler target**, not a replacement artifact.
+`MEANING.yaml` is a **supplement and compiler target**, not a replacement artifact.
 
-It also serves **two different consumers**:
+It serves two consumers:
 
-- humans need a precise, governable declaration they can review and update
-- agents need a generated, repo-local context projection they can consume during execution
+- humans need a precise, governable declaration they can review and update — `MEANING.yaml` itself
+- agents need a generated, repo-local context projection they can consume during execution — `.claude/meaning-context.md`
 
-That is why this repo keeps:
-
-- `MEANING.yaml` as the canonical semantic contract
-- `.claude/meaning-context.md` as the generated agent-facing projection
-
-One source of truth. Different consumption modes.
+One source of truth. Different consumption modes. The diagram and per-role breakdown live in [docs/MENTAL_MODEL.md](./docs/MENTAL_MODEL.md).
 
 ---
 
-## The Mental Model
+## What Ships Today
 
-```
-              WHO CREATES MEANING?
-                     │
-              ┌──────┴──────┐
-              │   Humans    │
-              │  (PM, Arch, │
-              │   Eng Lead) │
-              └──────┬──────┘
-                     │
-               writes / updates
-                     │
-                     ▼
-             ┌───────────────┐
-             │ MEANING.yaml  │  ◄── The Artifact
-             │               │      (lives in your repo root)
-             │ • goals       │
-             │ • non-goals   │
-             │ • constraints │
-             │ • trade-offs  │
-             │ • drift policy│
-             └───────┬───────┘
-                     │
-        ┌────────────┼────────────┐
-        │            │            │
-        ▼            ▼            ▼
-  ┌──────────┐ ┌──────────┐ ┌──────────┐
-  │  Devs    │ │ AI Agents│ │    CI    │
-  │          │ │ (Claude, │ │ Pipeline │
-  │ Read it  │ │  Cursor) │ │          │
-  │ before   │ │ Consume  │ │ Enforce  │
-  │ coding   │ │ it as    │ │ it as    │
-  │          │ │ context  │ │ gates    │
-  └──────────┘ └──────────┘ └──────────┘
-```
+| Layer | Surface | Status |
+|-------|---------|--------|
+| Education | [GUIDE.md](./GUIDE.md), [MANIFESTO.md](./MANIFESTO.md), [AGENTS.md](./AGENTS.md) | ✅ Shipped |
+| Artifact | `MEANING.yaml` + JSON Schema | ✅ Shipped |
+| Schema validation | `meaning validate` + GitHub Action | ✅ Shipped |
+| Agent context | `meaning context` (Claude today; Cursor / Copilot emitters on roadmap) | ✅ Shipped |
+| Semantic drift detection + gating | `meaning review <diff>` / `meaning drift <diff>` — LLM judge cites constraint IDs and can fail CI on `block`-level findings | ✅ Shipped from source + GitHub Action; npm publish is a convenience roadmap item |
 
-## Useful To Every Role
-
-Semantic Authority works best when it is **layered**, not when everyone is forced through the same interface.
-
-The same repo should offer different kinds of value:
-
-| Audience | What They Need | Where They Start |
-|-------|------|-----|
-| **PMs / non-technical operators** | A way to make goals, non-goals, trade-offs, and assumptions explicit | [GUIDE.md](./GUIDE.md), [docs/GENERATE_MEANING_PROMPT.md](./docs/GENERATE_MEANING_PROMPT.md) |
-| **Engineers / architects** | A canonical semantic contract that can be validated, reviewed, and discussed in PRs | [README.md](./README.md), [packages/cli/README.md](./packages/cli/README.md), [examples/invoice-processor/SCENARIOS.md](./examples/invoice-processor/SCENARIOS.md) |
-| **Agents** | A machine-consumable source of truth and a generated execution context | [AGENTS.md](./AGENTS.md), `meaning context`, `.claude/meaning-context.md` |
-| **Leads / the organization** | Lower drift, clearer ownership, and a shared vocabulary for what the system is allowed to mean | `MEANING.yaml`, review outputs, drift policy, PR discussions |
-
-That is the intended shape of the project:
-
-- not just a PM artifact
-- not just a dev tool
-- not just an agent prompt file
-
-It is a shared semantic layer with different projections for each part of the team.
-
----
-
-**Three layers:**
-
-| Layer | What | Who | Status |
-|-------|------|-----|--------|
-| **Education** | Docs teach why this matters and how to write MEANING.yaml | Everyone | ✅ Shipped |
-| **Artifact** | MEANING.yaml declares what the system means | PM, Architect, Tech Lead (authors); Devs + Agents (consumers) | ✅ Shipped |
-| **Schema validation** | `meaning validate` + Action confirm the file is well-formed | CI | ✅ Shipped |
-| **Agent context** | `meaning context` emits a Claude-loadable context file | Devs, Agents | ✅ Shipped (Claude); Cursor/Copilot emitters are roadmap |
-| **Semantic drift detection + gating** | `meaning drift <diff>` / `meaning review <diff>` ask an LLM judge whether a diff plausibly puts any constraint at risk and can fail CI on `block`-level findings | CI, Devs | ✅ Shipped from source + GitHub Action; npm publish is a convenience roadmap item |
+The review surface is the one that earns the "enforce meaning" claim. Full usage guide: [docs/REVIEW.md](./docs/REVIEW.md).
 
 ---
 
 ## Quickstart
 
-Until `@semantic-authority/cli` is published to npm, build the CLI from this repo once with `npm install --prefix packages/cli && npm run build --prefix packages/cli`, then run commands via `node packages/cli/dist/index.js ...`.
+Until `@semantic-authority/cli` is published to npm, build the CLI from this repo once:
+
+```bash
+npm install --prefix packages/cli
+npm run build --prefix packages/cli
+```
+
+Then run commands via `node packages/cli/dist/index.js ...`.
 
 ### 1. Create a MEANING.yaml
 
 ```bash
 node packages/cli/dist/index.js init
-# After npm publish:
-# npx @semantic-authority/cli init
 ```
 
-Interactive wizard asks: system name, primary goal, non-goals, first constraints. Generates `MEANING.yaml` at your repo root and `.claude/meaning-context.md` for agent consumption.
+Interactive wizard asks for system name, primary goal, non-goals, and first constraints. Generates `MEANING.yaml` at your repo root and `.claude/meaning-context.md` for agent consumption.
 
 ### 2. Validate it
 
 ```bash
 node packages/cli/dist/index.js validate
-# After npm publish:
-# npx @semantic-authority/cli validate
 ```
 
 Checks schema, constraint ID format, minimum non-goals, enforcement levels.
@@ -151,23 +95,20 @@ Checks schema, constraint ID format, minimum non-goals, enforcement levels.
 
 ```bash
 node packages/cli/dist/index.js context
-# After npm publish:
-# npx @semantic-authority/cli context
 ```
 
-Converts MEANING.yaml into a `.claude/meaning-context.md` that Claude Code, Cursor, or any LLM agent can consume. Append to your CLAUDE.md or load as a skill.
+Converts `MEANING.yaml` into a `.claude/meaning-context.md` that Claude Code, Cursor, or any LLM agent can consume. Append to your CLAUDE.md or load as a skill.
 
-### 4. CI status
+### 4. Review code changes against MEANING.yaml
 
-The composite GitHub Action is implemented in [action/action.yml](./action/action.yml), including `mode: review`, one-pass SARIF generation, and merge gating. It now builds the CLI directly from this repo, so the Action is usable in external repos today without waiting for npm publication.
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+node packages/cli/dist/index.js review --base origin/main
+```
 
-What you can do right now:
+Block-level findings exit non-zero. See [docs/REVIEW.md](./docs/REVIEW.md) for local + CI flows, output formats, exit codes, cost controls, and limitations.
 
-- run `meaning validate`, `meaning context`, `meaning review`, and `meaning drift` from a local source checkout
-- use the Action directly from GitHub in external repos
-- publish the npm package later to make `npx @semantic-authority/cli ...` turnkey for local CLI adoption
-
-This is the current external CI workflow:
+### 5. Wire up CI
 
 ```yaml
 # .github/workflows/meaning.yml
@@ -181,9 +122,8 @@ jobs:
       security-events: write
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: ai-native-pm-stack/semantic-authority/action@main
+        with: { fetch-depth: 0 }
+      - uses: ai-native-pm-stack/semantic-authority/action@v0.2.0-alpha
         with:
           mode: both
           fail-on: block
@@ -192,205 +132,9 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
-Public roadmap:
-
-- publish `@semantic-authority/cli` to npm so teams can use `npx @semantic-authority/cli ...` without cloning the repo first
-- cut a `v0.2.0-alpha` release tag that matches the review/drift surface now on `main`
-
 ---
 
-## `meaning drift` / `meaning review` — Drift Detection On Every PR
-
-`meaning drift <diff>` is the semantic-drift surface. `meaning review <diff>` is the PR / CI surface. Today they share the same engine.
-
-Both commands load `MEANING.yaml`, resolve a code diff, and ask an LLM judge whether any declared constraint is plausibly at risk. Findings cite the constraint ID, file, and line. CI can fail when findings meet or exceed your `--fail-on` threshold.
-
-This is the missing piece between "we wrote down the constraints" and "the constraints actually constrain the code."
-
-Two important truths:
-
-- `meaning validate` is **deterministic** schema and semantic hygiene validation.
-- `meaning review` is **probabilistic** model-mediated review. It is best used as an additional review-and-gate layer alongside tests, type-checking, and human review, not as formal proof that a change is safe.
-- review results are cached locally and in the GitHub Action by `(diff_hash, meaning_hash, model_id, provider)` so repeated PR pushes do not need to repay the same model call
-
-### Local developer flow
-
-```bash
-npm install --prefix packages/cli
-npm run build --prefix packages/cli
-export ANTHROPIC_API_KEY=sk-ant-...
-export OPENAI_API_KEY=sk-proj-...
-
-# From a checkout of this repo:
-node packages/cli/dist/index.js drift --base origin/main
-node packages/cli/dist/index.js review --base origin/main
-node packages/cli/dist/index.js review --provider openai --model gpt-5.4-mini --base origin/main
-
-# After npm publish, the same command becomes:
-# meaning drift --base origin/main
-# meaning review --base origin/main
-```
-
-Output:
-
-```
-meaning review — invoice-processor @ MEANING.yaml
-Diff: 7 files, 142 lines changed (base: origin/main)
-
-⛔ AT RISK  C-FIN-NO-DOUBLE-PAY-001  (block, high confidence)
-   src/payments/submit.ts:42
-   New retry path in submitPayment() re-enters chargeProvider() without
-   checking the (vendor_id, invoice_number) idempotency key.
-   Suggest: assert idempotency before retry, or add integration test
-   covering concurrent resubmit.
-
-⚠  AT RISK  C-PERF-SEARCH-P95-004  (warn, medium confidence)
-   src/search/query.ts:88
-   Removed index hint on (vendor_id, created_at); query now filters
-   by created_at alone. Likely regression on large vendor histories.
-
-✓  6 other constraints reviewed, no risk flagged.
-
-Summary: 1 block, 1 warn — exit 1
-Cost: $0.043 (input 12,400 tok, output 1,820 tok, 1 call)
-```
-
-Common variants:
-
-```bash
-meaning drift --base origin/main                    # drift-focused local run
-meaning review --staged                            # pre-commit check
-meaning review --base origin/release/1.4           # non-main base
-meaning review --diff path/to/patch.diff           # from file
-git diff main...feature | meaning review -         # from stdin
-meaning review --format json                       # machine-readable
-meaning review --only block                        # suppress warns
-meaning review --sarif-output meaning-review.sarif # text + SARIF in one run
-meaning review --budget-usd 0.25                   # cap spend per run
-meaning review --cache-dir .meaning-cache/review   # override cache location
-meaning review --no-cache                          # force a fresh judge call
-```
-
-### CI flow (GitHub PR)
-
-```yaml
-# .github/workflows/meaning.yml
-on: pull_request
-jobs:
-  review:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
-      security-events: write    # for SARIF upload
-    steps:
-      - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
-      # This is the post-npm-publish path. Until then, use the in-repo
-      # CLI from source as described above.
-      - uses: ai-native-pm-stack/semantic-authority/action@main
-        with:
-          mode: review
-          base: ${{ github.base_ref }}
-          fail-on: block
-          provider: anthropic
-          cache: true
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-```
-
-What the developer sees on the PR:
-
-1. **Inline annotations** on changed lines (from SARIF upload). Clicking shows the constraint ID, rationale, and suggestion.
-2. **Check status** — green if no `block` findings, red if any. Adding the check to required-status-checks on `main` makes block findings actually block merge.
-3. **Security tab** — findings appear under Code scanning alerts, grouped by constraint ID as the rule.
-
-### End-to-end example
-
-A developer adds a retry loop to `submitPayment()` and pushes the branch.
-
-1. CI runs `meaning review --base origin/main --format text --sarif-output meaning-review.sarif`.
-2. The CLI loads `MEANING.yaml`, resolves the diff, and pre-filters constraints to those whose `path_globs` match the changed files plus all `block`-level constraints.
-3. It calls the configured LLM provider once with the constraints + full changed-file context + diff. The model returns findings via a forced `report_findings` tool call.
-4. The same review result is rendered to both the workflow summary and SARIF; SARIF is uploaded; the PR check goes red; an annotation lands on `src/payments/submit.ts:42` citing `C-FIN-NO-DOUBLE-PAY-001`.
-5. Developer reads the rationale, adds the idempotency assert, pushes again.
-6. CI re-runs; if the diff/meaning tuple is unchanged the cached result is reused, otherwise the judge re-evaluates the new diff, the finding clears, the check goes green, and merge is unblocked.
-
-### Failure modes and exit codes
-
-| Code | Meaning |
-|---|---|
-| 0 | No findings at or above `--fail-on` |
-| 1 | Findings at or above `--fail-on` |
-| 2 | Configuration or input error (bad MEANING.yaml, no diff, missing API key) |
-| 3 | Budget exceeded; no API call made |
-| 4 | API error after retries |
-
-Common situations:
-
-- **No API key in CI** → exit 2, with a setup link.
-- **Diff too large for budget** → exit 3, "split or raise `--budget-usd`."
-- **Anthropic or OpenAI outage** → retries, then exit 4. Teams can set `continue-on-error: true` until the gate is trusted.
-- **Vague constraint** → verdict comes back `insufficient_context`; surfaced as a notice, not a block. That is the signal to sharpen `MEANING.yaml`.
-- **False positives / false negatives** → this is why `meaning review` should be framed as constraint-risk detection, not proof. Keep the gate narrow at first (`fail-on: block`), keep tests in place, and tune constraints with real review feedback.
-
-### What this changes in day-to-day work
-
-- `MEANING.yaml` becomes a living artifact because the judge cites it on every PR. Stale or vague constraints get noticed.
-- Constraint IDs become real foreign keys — they show up in PR annotations, SARIF rules, and review comments.
-- Declared constraints can now participate in review and merge gating instead of sitting as inert prose in a document.
-
-### Reproducible review scenarios
-
-The fastest way to understand the mechanism is to run it against seeded diffs instead of trusting the manifesto.
-
-See [examples/invoice-processor/SCENARIOS.md](./examples/invoice-processor/SCENARIOS.md) for three concrete cases:
-
-- a block-level PII redaction regression
-- a block-level audit trail regression
-- a deliberately vague constraint that returns `insufficient_context`
-
-See [examples/invoice-processor/AGENT_EXAMPLE.md](./examples/invoice-processor/AGENT_EXAMPLE.md) for a small before/after illustration of how the same request behaves with and without `MEANING.yaml` context.
-
-Scope today:
-
-- Constraints are first-class drift / review targets today.
-- Non-goals guide humans and agents, but they are **not yet compiled into first-class review rules** by `meaning review`.
-- `insufficient_context` is the signal that a constraint is too vague to review reliably and should be sharpened.
-
-### Limitations
-
-- Reasons over the diff plus full text of changed files. Does not chase call graphs across files.
-- Changed-file context is included only when the file is available from the workspace or the base revision and stays under the line cap; otherwise the judge falls back to diff-only context for that file.
-- Cache persistence across GitHub-hosted runs depends on the built-in `actions/cache` layer. If teams disable it, the CLI still caches locally within the job workspace but hosted runners will start fresh on the next run.
-- Auto-fix is not in scope; suggestions are text only.
-
-### Evaluation
-
-This repo currently includes:
-
-- deterministic validation tests for the artifact and CLI behavior
-- seeded review scenarios for constraint-risk detection
-- a simple agent-behavior illustration in the invoice-processor example
-
-It does **not** yet include:
-
-- a labeled benchmark with measured precision / recall
-- telemetry from external repos
-- a published before/after incident dataset
-
-That evidence layer is the next step. The most useful first measurements are:
-
-- precision of `block` findings on labeled PRs
-- recall on seeded constraint violations
-- rate of `insufficient_context` findings that lead to sharper constraints
-- reduction in scope-drift or non-goal violations after adoption
-
-Full design, success metrics, risks, and engineering workstreams: [PRD_MEANING_REVIEW.md](./PRD_MEANING_REVIEW.md).
-
----
-
-## What's in MEANING.yaml?
+## What MEANING.yaml Looks Like
 
 ```yaml
 system: invoice-processor
@@ -403,9 +147,6 @@ goal:
   primary: >
     Enable finance teams to submit, approve, and track invoices
     with automated compliance checks and audit trails.
-  success_criteria:
-    - "Invoice submitted to fully approved in under 48 hours for standard amounts"
-    - "Zero duplicate payments for the same vendor and invoice number"
   non_goals:
     - "Does not handle payment execution — delegates to bank integration"
     - "Does not support expense report or reimbursement workflows in v1"
@@ -422,6 +163,7 @@ constraints:
     rationale: "Duplicate payments cause direct financial loss"
     source: declared
     confidence: high
+    path_globs: ["src/payments/**", "src/billing/**"]
 
   - id: C-SEC-PII-REDACT-002
     description: "System must never expose vendor bank account numbers in API responses or logs"
@@ -431,97 +173,26 @@ constraints:
     rationale: "Bank account numbers are sensitive financial PII"
     source: declared
     confidence: high
-
-  - id: C-PERF-SEARCH-P95-004
-    description: "Invoice search P95 latency must remain under 500ms"
-    category: operational
-    enforcement: warn
-    owner: finance-engineering
-    rationale: "Slow search blocks month-end reconciliation"
-    source: declared
-    confidence: medium
-
-trade_offs:
-  chosen:
-    approach: "Optimistic locking for concurrent invoice approvals"
-    rationale: "Approval conflicts are rare; avoids blocking the common path"
-  rejected:
-    - alternative: "Pessimistic locking with row-level locks"
-      reason: "Adds 50-100ms latency and deadlock risk under load"
-      revisit_condition: "If approval conflicts exceed 1% of total approvals"
-
-drift_policy:
-  review_cadence: monthly
-  enforcement_rules:
-    block: "Violation must not merge without remediation or an approved drift record"
-    warn: "Acknowledgement required with owner and revisit date"
-    observe: "Logged for trend analysis; reviewed monthly"
 ```
+
+Full worked example: [examples/invoice-processor/MEANING.yaml](./examples/invoice-processor/MEANING.yaml).
 
 ---
 
 ## Docs
 
-| Document | Audience | What It Covers |
-|----------|----------|----------------|
-| [MANIFESTO.md](./MANIFESTO.md) | Everyone | Why Semantic Authority exists — the philosophical anchor |
+| Document | Audience | Covers |
+|----------|----------|--------|
 | [GUIDE.md](./GUIDE.md) | PMs, Architects, Tech Leads | How to write a MEANING.yaml — step-by-step, checklists, FAQ |
-| [AGENTS.md](./AGENTS.md) | Engineers, Agent builders | How AI agents consume MEANING.yaml — operating modes, multi-agent coordination |
-| [docs/GENERATE_MEANING_PROMPT.md](./docs/GENERATE_MEANING_PROMPT.md) | PMs, anyone with a BRD/PRD | LLM prompt template to generate a draft MEANING.yaml from existing product docs |
-| [packages/cli/README.md](./packages/cli/README.md) | Engineers, maintainers | CLI install, commands, and smoke-test path |
+| [docs/MENTAL_MODEL.md](./docs/MENTAL_MODEL.md) | Everyone | Mental model diagram + per-role usage breakdown |
+| [docs/REVIEW.md](./docs/REVIEW.md) | Engineers, DevOps | `meaning review` usage, CI flow, exit codes, limitations |
+| [AGENTS.md](./AGENTS.md) | Engineers, Agent builders | How AI agents consume MEANING.yaml |
+| [MANIFESTO.md](./MANIFESTO.md) | Everyone | Why Semantic Authority exists |
+| [docs/GENERATE_MEANING_PROMPT.md](./docs/GENERATE_MEANING_PROMPT.md) | PMs with a BRD/PRD | LLM prompt template to draft a MEANING.yaml from existing docs |
+| [packages/cli/README.md](./packages/cli/README.md) | Engineers, maintainers | CLI install, commands, smoke-test path |
 | [action/README.md](./action/README.md) | Engineers, DevOps | GitHub Action usage and release-state notes |
 | [PRD_MEANING_REVIEW.md](./PRD_MEANING_REVIEW.md) | Maintainers, contributors | Full PRD + ERD for the `meaning review` enforcement build |
-
----
-
-## How Different Roles Use This
-
-**Product Managers** author and update MEANING.yaml — writing goals, non-goals, and trade-offs. They review drift reports to understand where the system is diverging from intent. Have an existing BRD/PRD? Use the [generation prompt](./docs/GENERATE_MEANING_PROMPT.md) to create a draft MEANING.yaml with any LLM, or use the Claude Code skill (`skills/generate-meaning.md`) to generate one directly in your IDE.
-
-**Architects & Tech Leads** author constraints and enforcement levels. They run `meaning validate` during design reviews. They review cross-system meaning coherence when constraints in one service affect another.
-
-**Engineers** read MEANING.yaml before writing code. They can run `meaning review` locally from source today, and once npm is published the same workflow becomes a drop-in `npx` experience while the GitHub Action already works from the repo with inline PR annotations citing the constraint IDs their diff puts at risk.
-They can also run `meaning drift` as the same engine framed explicitly as semantic drift detection.
-
-**AI Agents** (Claude Code today; Cursor and Copilot emitters on the v0.3.0 roadmap) receive auto-generated context from `meaning context`. They know the system's goals, respect its non-goals, honor its constraints by ID, and understand its trade-offs before writing a single line of code.
-
-**CI Pipelines** can already use the GitHub Action in external repos today. npm publication remains a convenience step for local CLI distribution, not a blocker for CI adoption.
-
----
-
-## Keeping It Fresh
-
-A monthly review cadence alone is not enough. `MEANING.yaml` stays useful when review is triggered by events, not just calendars.
-
-Update or revisit it when:
-
-- a new `block`-level invariant appears
-- an incident reveals an unstated assumption
-- `meaning review` returns `insufficient_context`
-- a team intentionally crosses a declared non-goal
-- a release changes system boundaries or trade-offs
-- an ADR materially changes architecture that a constraint depends on
-
-The best cadence is usually:
-
-- **event-driven review** for meaningful change
-- **periodic review** as a backstop
-
----
-
-## What Ships vs. What's Generated
-
-The `.claude/` directory is **not** part of this package. It is a generated **output** in your project.
-
-| File | Where It Lives | Who Creates It | Committed? |
-|------|---------------|----------------|------------|
-| `MEANING.yaml` | **Your repo root** | You (human) | ✅ Yes — this is your source of truth |
-| `.claude/meaning-context.md` | **Your repo** `.claude/` | `meaning context` (auto-generated) | ❌ No — regenerate from MEANING.yaml anytime |
-| `@semantic-authority/cli` | **This repo today; npm registry after publish** | This project | N/A — run from `packages/cli/dist/index.js` today, then via `npx` / global install after npm publish |
-
-**Flow:** You write `MEANING.yaml` → CLI reads it → generates `.claude/meaning-context.md` → Claude Code auto-loads it.
-
-Add `.claude/meaning-context.md` to your project's `.gitignore`. It's a build artifact, not a source file.
+| [examples/invoice-processor/SCENARIOS.md](./examples/invoice-processor/SCENARIOS.md) | Anyone evaluating | Three runnable review scenarios |
 
 ---
 
@@ -530,38 +201,23 @@ Add `.claude/meaning-context.md` to your project's `.gitignore`. It's a build ar
 ```
 semantic-authority/
 ├── README.md              ← You are here
-├── MANIFESTO.md           ← Why (1 page)
+├── MANIFESTO.md           ← Why
 ├── GUIDE.md               ← How to write MEANING.yaml
 ├── AGENTS.md              ← How agents consume it
-├── LICENSE
+├── PRD_MEANING_REVIEW.md  ← PRD + ERD for the review build
 │
 ├── docs/
-│   └── GENERATE_MEANING_PROMPT.md  ← LLM prompt to generate from BRD/PRD
+│   ├── MENTAL_MODEL.md              ← Diagram + per-role usage
+│   ├── REVIEW.md                    ← `meaning review` usage guide
+│   └── GENERATE_MEANING_PROMPT.md   ← LLM prompt for drafting from a BRD
 │
-├── skills/
-│   └── generate-meaning.md         ← Claude Code skill for generation
-│
-├── packages/cli/          ← The `meaning` CLI
-│   ├── package.json
-│   ├── src/
-│   │   ├── commands/      ← init, validate, context, review
-│   │   └── schema/        ← JSON Schema for MEANING.yaml
-│   └── tests/
-│
+├── packages/cli/          ← The `meaning` CLI (init, validate, context, review, drift)
 ├── action/                ← GitHub Action wrapper
-│   └── action.yml
-│
 └── examples/
-    └── invoice-processor/ ← Worked example
-        ├── MEANING.yaml
-        ├── SCENARIOS.md
-        ├── AGENT_EXAMPLE.md
-        └── scenarios/
-            ├── 01-pii-redaction.diff
-            ├── 02-audit-trail.diff
-            ├── 03-vague-runbook.diff
-            └── MEANING.vague.yaml
+    └── invoice-processor/ ← Worked example + seeded review scenarios
 ```
+
+`MEANING.yaml` lives in your repo root and is committed. `.claude/meaning-context.md` is a generated artifact — add it to `.gitignore` and regenerate from `MEANING.yaml` anytime.
 
 ---
 
@@ -575,6 +231,16 @@ semantic-authority/
 > Tests are the operational floor.
 > Authority is the semantic ceiling.
 > Between them, drift becomes visible.
+
+---
+
+## Related Work
+
+The deterministic / probabilistic boundary that separates `meaning validate` from `meaning review` is the trust-boundary thesis explored in:
+
+> Aligba, S. (2026). *Formal Intermediate Representations as Safety Boundaries for LLM Agents in Financial Workflows.* Working paper, submitted to the Human × AI Finance Conference, UCLA Anderson School of Management & Fink Center for Finance & Investments, April 2026.
+
+A public-facing essay introducing the same thesis — [The Sandwich Architecture](https://www.linkedin.com/pulse/sandwich-architecture-samson-aligba-5f6de) — makes the operational claim plainly: *formal intermediate representations are the trust boundary for agentic systems*. `MEANING.yaml` is the human-authored upstream layer; `meaning validate` and `meaning review` are the verification surfaces that catch when execution drifts from declared meaning before merge.
 
 ---
 

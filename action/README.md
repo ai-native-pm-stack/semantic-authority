@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: ai-native-pm-stack/semantic-authority/action@main
+      - uses: ai-native-pm-stack/semantic-authority/action@v0.2.0-alpha
         with:
           mode: both
           fail-on: block
@@ -31,7 +31,7 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
-For repo-local development, use the default branch or a commit SHA:
+For repo-local development against unreleased changes, use the default branch or a commit SHA:
 
 ```yaml
 - uses: ai-native-pm-stack/semantic-authority/action@main
@@ -93,7 +93,8 @@ env:
 ## Roadmap
 
 - publish `@semantic-authority/cli` to npm so local CLI usage becomes `npx @semantic-authority/cli ...`
-- cut a `v0.2.0-alpha` release tag that matches the review/drift surface now living on `main`
+- publish a small labeled benchmark set with measured precision / recall for review findings
+- publish one real-world dogfood example showing the Action's SARIF annotations on a live PR
 
 ## Smoke Test
 

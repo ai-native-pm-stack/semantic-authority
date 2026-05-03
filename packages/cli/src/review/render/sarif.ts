@@ -51,7 +51,7 @@ export function renderSarif(result: ReviewResult, constraints: Constraint[]): st
           driver: {
             name: "meaning-review",
             informationUri: "https://github.com/ai-native-pm-stack/semantic-authority",
-            version: "0.2.0",
+            version: "0.2.0-alpha",
             rules,
           },
         },

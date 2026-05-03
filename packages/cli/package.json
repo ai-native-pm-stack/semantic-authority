@@ -1,6 +1,6 @@
 {
   "name": "@semantic-authority/cli",
-  "version": "0.1.0",
+  "version": "0.2.0-alpha",
   "description": "Validate, enforce, and generate agent context from MEANING.yaml",
   "license": "MIT",
   "author": "Samson Aligba <hello@samsonaligba.com>",
