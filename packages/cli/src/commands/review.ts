@@ -6,6 +6,13 @@ import { resolveDiff } from "../review/diff.js";
 import { prefilter } from "../review/prefilter.js";
 import { callJudge, resolveJudgeProvider } from "../review/judge.js";
 import { aggregate, exitCodeFor } from "../review/aggregate.js";
+import {
+  createReviewCacheKey,
+  defaultReviewCacheDir,
+  formatReviewCacheKey,
+  readReviewCache,
+  writeReviewCache,
+} from "../review/cache.js";
 import { checkBudget, estimateCostUsd } from "../review/budget.js";
 import { renderText } from "../review/render/text.js";
 import { renderJson } from "../review/render/json.js";
@@ -15,6 +22,8 @@ import type { Constraint, MeaningDoc, ReviewResult, Severity } from "../review/t
 export interface ReviewOptions {
   surfaceName?: "review" | "drift";
   provider?: string;
+  cache?: boolean;
+  cacheDir?: string;
   meaning: string;
   base?: string;
   diff?: string;
@@ -41,7 +50,8 @@ export async function reviewCommand(args: string[], options: ReviewOptions): Pro
     if (!existsSync(meaningPath)) {
       fail(2, `MEANING.yaml not found at ${meaningPath}`, "Run `meaning init` to create one.");
     }
-    const doc = parseYaml(readFileSync(meaningPath, "utf-8")) as MeaningDoc;
+    const meaningContents = readFileSync(meaningPath, "utf-8");
+    const doc = parseYaml(meaningContents) as MeaningDoc;
     if (!doc?.constraints || !Array.isArray(doc.constraints)) {
       fail(2, `MEANING.yaml has no constraints array.`);
     }
@@ -103,32 +113,71 @@ export async function reviewCommand(args: string[], options: ReviewOptions): Pro
       fail(2, "No constraints remain after pre-filter.", "This usually means MEANING.yaml has no constraints relevant to the diff.");
     }
 
-    const budgetUsd = parseFloat(options.budgetUsd);
-    const budget = checkBudget(options.model, reviewedConstraints, diff, budgetUsd);
-    if (options.verbose) {
-      console.error(
-        chalk.dim(
-          `[budget] est ${budget.estimatedInputTokens} in / ${budget.estimatedOutputTokens} out, ~$${budget.estimatedCostUsd.toFixed(4)} (cap $${budgetUsd.toFixed(2)})`
-        )
-      );
-    }
-    if (!budget.withinBudget) {
-      fail(
-        3,
-        `Estimated cost $${budget.estimatedCostUsd.toFixed(4)} exceeds budget $${budgetUsd.toFixed(2)}.`,
-        "Split the diff, raise --budget-usd, or use a cheaper --model."
-      );
-    }
+    const cacheEnabled = options.cache !== false;
+    const cacheDir = resolve(options.cacheDir ?? defaultReviewCacheDir());
+    const cacheKey = createReviewCacheKey({
+      provider,
+      model: options.model,
+      meaningContents,
+      diff,
+    });
+    const cacheKeyString = formatReviewCacheKey(cacheKey);
 
     let judgeResult;
-    try {
-      judgeResult = await callJudge(reviewedConstraints, diff, {
-        provider,
-        model: options.model,
-        apiKey,
-      });
-    } catch (e) {
-      fail(4, `LLM judge call failed: ${(e as Error).message}`);
+    let cacheHit = false;
+    let cachedAt: string | undefined;
+    let cacheSavedUsd = 0;
+
+    const cached = cacheEnabled ? readReviewCache(cacheDir, cacheKey) : null;
+    if (cached) {
+      judgeResult = {
+        findings: cached.findings,
+        usage: cached.usage,
+      };
+      cacheHit = true;
+      cachedAt = cached.createdAt;
+      cacheSavedUsd = estimateCostUsd(options.model, cached.usage.inputTokens, cached.usage.outputTokens);
+      if (options.verbose) {
+        console.error(chalk.dim(`[cache] hit ${cacheKeyString}`));
+      }
+    } else {
+      const budgetUsd = parseFloat(options.budgetUsd);
+      const budget = checkBudget(options.model, reviewedConstraints, diff, budgetUsd);
+      if (options.verbose) {
+        console.error(
+          chalk.dim(
+            `[budget] est ${budget.estimatedInputTokens} in / ${budget.estimatedOutputTokens} out, ~$${budget.estimatedCostUsd.toFixed(4)} (cap $${budgetUsd.toFixed(2)})`
+          )
+        );
+      }
+      if (!budget.withinBudget) {
+        fail(
+          3,
+          `Estimated cost $${budget.estimatedCostUsd.toFixed(4)} exceeds budget $${budgetUsd.toFixed(2)}.`,
+          "Split the diff, raise --budget-usd, or use a cheaper --model."
+        );
+      }
+
+      try {
+        judgeResult = await callJudge(reviewedConstraints, diff, {
+          provider,
+          model: options.model,
+          apiKey,
+        });
+      } catch (e) {
+        fail(4, `LLM judge call failed: ${(e as Error).message}`);
+      }
+
+      if (cacheEnabled) {
+        const writtenPath = writeReviewCache(cacheDir, cacheKey, {
+          usage: judgeResult.usage,
+          findings: judgeResult.findings,
+        });
+        if (options.verbose) {
+          console.error(chalk.dim(`[cache] miss ${cacheKeyString}`));
+          console.error(chalk.dim(`[cache] wrote ${writtenPath}`));
+        }
+      }
     }
 
     const aggregated = aggregate({
@@ -159,15 +208,23 @@ export async function reviewCommand(args: string[], options: ReviewOptions): Pro
       meaningFile: options.meaning,
       system: doc.system,
       version: doc.version,
+      judge: {
+        provider,
+        model: options.model,
+        cacheHit,
+        cacheKey: cacheKeyString,
+        cachedAt,
+      },
       diff: { base: diff.base, head: diff.head, files: diff.files.length, lines: diff.totalLines },
       findings: visibleFindings,
       stats: {
         constraintsTotal: doc.constraints.length,
         constraintsReviewed: reviewedConstraints.length,
-        calls: 1,
+        calls: cacheHit ? 0 : 1,
         inputTokens: judgeResult.usage.inputTokens,
         outputTokens: judgeResult.usage.outputTokens,
-        costUsd: cost,
+        costUsd: cacheHit ? 0 : cost,
+        cacheSavedUsd: cacheHit ? cacheSavedUsd : undefined,
       },
       insufficientContext: aggregated.insufficientContext,
     };

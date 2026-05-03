@@ -51,6 +51,10 @@ inputs:
     description: "Upload SARIF results to GitHub code scanning"
     required: false
     default: "true"
+  cache:
+    description: "Persist the local meaning-review cache across workflow runs"
+    required: false
+    default: "true"
 
 runs:
   using: "composite"
@@ -59,6 +63,16 @@ runs:
       uses: actions/setup-node@v4
       with:
         node-version: "20"
+
+    - name: Restore meaning review cache
+      if: (inputs.mode == 'review' || inputs.mode == 'both') && inputs.cache == 'true'
+      uses: actions/cache@v4
+      with:
+        path: ${{ github.workspace }}/.meaning-cache/review
+        key: meaning-review-${{ runner.os }}-${{ github.repository }}-${{ inputs.provider }}-${{ inputs.model }}-${{ github.ref_name }}-${{ github.sha }}
+        restore-keys: |
+          meaning-review-${{ runner.os }}-${{ github.repository }}-${{ inputs.provider }}-${{ inputs.model }}-${{ github.ref_name }}-
+          meaning-review-${{ runner.os }}-${{ github.repository }}-${{ inputs.provider }}-${{ inputs.model }}-
 
     - name: Build Semantic Authority CLI from this repo
       shell: bash
@@ -100,9 +114,14 @@ runs:
           --model "${{ inputs.model }}"
           --budget-usd "${{ inputs.budget-usd }}"
           --fail-on "${{ inputs.fail-on }}"
+          --cache-dir "${{ github.workspace }}/.meaning-cache/review"
           --format text
           --no-color
         )
+
+        if [ "${{ inputs.cache }}" = "false" ]; then
+          REVIEW_ARGS+=(--no-cache)
+        fi
 
         if [ "${{ inputs.upload-sarif }}" = "true" ]; then
           REVIEW_ARGS+=(--sarif-output meaning-review.sarif)

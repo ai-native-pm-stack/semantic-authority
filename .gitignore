@@ -28,5 +28,8 @@ coverage/
 # Generated agent context (output of `meaning context`)
 .claude/meaning-context.md
 
+# Local review cache
+.meaning-cache/
+
 # Claude Code local
 .claude/settings.local.json

@@ -183,7 +183,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: ai-native-pm-stack/semantic-authority/action@v0.1.0
+      - uses: ai-native-pm-stack/semantic-authority/action@main
         with:
           mode: both
           fail-on: block
@@ -195,6 +195,7 @@ jobs:
 Public roadmap:
 
 - publish `@semantic-authority/cli` to npm so teams can use `npx @semantic-authority/cli ...` without cloning the repo first
+- cut a `v0.2.0-alpha` release tag that matches the review/drift surface now on `main`
 
 ---
 
@@ -210,6 +211,7 @@ Two important truths:
 
 - `meaning validate` is **deterministic** schema and semantic hygiene validation.
 - `meaning review` is **probabilistic** model-mediated review. It is best used as an additional review-and-gate layer alongside tests, type-checking, and human review, not as formal proof that a change is safe.
+- review results are cached locally and in the GitHub Action by `(diff_hash, meaning_hash, model_id, provider)` so repeated PR pushes do not need to repay the same model call
 
 ### Local developer flow
 
@@ -265,6 +267,8 @@ meaning review --format json                       # machine-readable
 meaning review --only block                        # suppress warns
 meaning review --sarif-output meaning-review.sarif # text + SARIF in one run
 meaning review --budget-usd 0.25                   # cap spend per run
+meaning review --cache-dir .meaning-cache/review   # override cache location
+meaning review --no-cache                          # force a fresh judge call
 ```
 
 ### CI flow (GitHub PR)
@@ -284,12 +288,13 @@ jobs:
         with: { fetch-depth: 0 }
       # This is the post-npm-publish path. Until then, use the in-repo
       # CLI from source as described above.
-      - uses: ai-native-pm-stack/semantic-authority/action@v0.1.0
+      - uses: ai-native-pm-stack/semantic-authority/action@main
         with:
           mode: review
           base: ${{ github.base_ref }}
           fail-on: block
           provider: anthropic
+          cache: true
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
@@ -309,7 +314,7 @@ A developer adds a retry loop to `submitPayment()` and pushes the branch.
 3. It calls the configured LLM provider once with the constraints + full changed-file context + diff. The model returns findings via a forced `report_findings` tool call.
 4. The same review result is rendered to both the workflow summary and SARIF; SARIF is uploaded; the PR check goes red; an annotation lands on `src/payments/submit.ts:42` citing `C-FIN-NO-DOUBLE-PAY-001`.
 5. Developer reads the rationale, adds the idempotency assert, pushes again.
-6. CI re-runs; the judge now sees the assert in the diff; finding clears; check goes green; merge unblocked.
+6. CI re-runs; if the diff/meaning tuple is unchanged the cached result is reused, otherwise the judge re-evaluates the new diff, the finding clears, the check goes green, and merge is unblocked.
 
 ### Failure modes and exit codes
 
@@ -357,7 +362,7 @@ Scope today:
 
 - Reasons over the diff plus full text of changed files. Does not chase call graphs across files.
 - Changed-file context is included only when the file is available from the workspace or the base revision and stays under the line cap; otherwise the judge falls back to diff-only context for that file.
-- No cross-run finding cache yet.
+- Cache persistence across GitHub-hosted runs depends on the built-in `actions/cache` layer. If teams disable it, the CLI still caches locally within the job workspace but hosted runners will start fresh on the next run.
 - Auto-fix is not in scope; suggestions are text only.
 
 ### Evaluation

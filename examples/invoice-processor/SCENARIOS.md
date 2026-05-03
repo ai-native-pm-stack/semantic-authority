@@ -44,7 +44,7 @@ node packages/cli/dist/index.js review \
 
 Files:
 
-- [01-pii-redaction.diff](/Users/samsonaligba/Projects/meaning/examples/invoice-processor/scenarios/01-pii-redaction.diff)
+- [01-pii-redaction.diff](./scenarios/01-pii-redaction.diff)
 - constraint: `C-SEC-PII-REDACT-002`
 
 Intent:
@@ -64,7 +64,7 @@ What this demonstrates:
 
 Files:
 
-- [02-audit-trail.diff](/Users/samsonaligba/Projects/meaning/examples/invoice-processor/scenarios/02-audit-trail.diff)
+- [02-audit-trail.diff](./scenarios/02-audit-trail.diff)
 - constraint: `C-ARCH-AUDIT-TRAIL-005`
 
 Intent:
@@ -83,8 +83,8 @@ What this demonstrates:
 
 Files:
 
-- [MEANING.vague.yaml](/Users/samsonaligba/Projects/meaning/examples/invoice-processor/scenarios/MEANING.vague.yaml)
-- [03-vague-runbook.diff](/Users/samsonaligba/Projects/meaning/examples/invoice-processor/scenarios/03-vague-runbook.diff)
+- [MEANING.vague.yaml](./scenarios/MEANING.vague.yaml)
+- [03-vague-runbook.diff](./scenarios/03-vague-runbook.diff)
 - constraint: `C-OPS-RUNBOOK-009`
 
 Intent:

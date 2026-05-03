@@ -29,6 +29,8 @@ function addReviewLikeCommand(config: {
     .option("--fail-on <level>", "Exit non-zero threshold: block | warn | observe", "block")
     .option("--max-files <n>", "Cap on files in a single review run", "50")
     .option("--budget-usd <n>", "Abort before API call if estimate exceeds this", "1.00")
+    .option("--cache-dir <path>", "Cache directory for cross-run review results")
+    .option("--no-cache", "Disable local review cache")
     .option("-o, --output <path>", "Write rendered output to a file")
     .option("--sarif-output <path>", "Also write SARIF output to a file")
     .option("--no-color", "Disable ANSI colors in text output")
@@ -38,6 +40,8 @@ function addReviewLikeCommand(config: {
       return reviewCommand(args, {
         surfaceName: config.surfaceName,
         provider: opts.provider as string | undefined,
+        cache: opts.cache as boolean | undefined,
+        cacheDir: opts.cacheDir as string | undefined,
         meaning: (opts.meaning as string) ?? "./MEANING.yaml",
         base: opts.base as string | undefined,
         diff: opts.diff as string | undefined,

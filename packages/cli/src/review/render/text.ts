@@ -46,11 +46,19 @@ export function renderText(
     (observes.length ? `, ${observes.length} observe` : "") +
     (result.insufficientContext.length ? `, ${result.insufficientContext.length} unclear` : "");
   lines.push(summary);
-  lines.push(
-    c.dim(
-      `Cost: $${result.stats.costUsd.toFixed(3)} (input ${result.stats.inputTokens} tok, output ${result.stats.outputTokens} tok, ${result.stats.calls} call${result.stats.calls === 1 ? "" : "s"})`
-    )
-  );
+  if (result.judge?.cacheHit) {
+    lines.push(
+      c.dim(
+        `Cost: $${result.stats.costUsd.toFixed(3)} (cache hit; saved ~$${(result.stats.cacheSavedUsd ?? 0).toFixed(3)}, original input ${result.stats.inputTokens} tok, output ${result.stats.outputTokens} tok)`
+      )
+    );
+  } else {
+    lines.push(
+      c.dim(
+        `Cost: $${result.stats.costUsd.toFixed(3)} (input ${result.stats.inputTokens} tok, output ${result.stats.outputTokens} tok, ${result.stats.calls} call${result.stats.calls === 1 ? "" : "s"})`
+      )
+    );
+  }
   lines.push("");
 
   return lines.join("\n");

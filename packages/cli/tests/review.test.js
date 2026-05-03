@@ -1,10 +1,20 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseUnifiedDiff, lineTouchesDiffHunk, fileContextToText } from "../dist/review/diff.js";
 import { prefilter, globMatch } from "../dist/review/prefilter.js";
 import { aggregate, quoteAppearsInDiff, exitCodeFor } from "../dist/review/aggregate.js";
+import {
+  createReviewCacheKey,
+  defaultReviewCacheDir,
+  formatReviewCacheKey,
+  readReviewCache,
+  writeReviewCache,
+} from "../dist/review/cache.js";
 import {
   parseAnthropicResponse,
   parseOpenAIResponse,
@@ -392,6 +402,54 @@ test("resolveJudgeProvider infers provider from model id", () => {
   assert.equal(resolveJudgeProvider("claude-opus-4-7", "openai"), "openai");
 });
 
+test("review cache key changes with provider/model/diff/meaning", () => {
+  const diff = { base: "main", head: "HEAD", files: parseUnifiedDiff(SAMPLE_DIFF), totalLines: 3 };
+  const keyA = createReviewCacheKey({
+    provider: "anthropic",
+    model: "claude-opus-4-7",
+    meaningContents: "version: 1",
+    diff,
+  });
+  const keyB = createReviewCacheKey({
+    provider: "openai",
+    model: "gpt-5.4-mini",
+    meaningContents: "version: 1",
+    diff,
+  });
+  assert.notEqual(formatReviewCacheKey(keyA), formatReviewCacheKey(keyB));
+});
+
+test("review cache round-trips findings and usage", () => {
+  const cacheDir = mkdtempSync(join(tmpdir(), "meaning-cache-"));
+  const diff = { base: "main", head: "HEAD", files: parseUnifiedDiff(SAMPLE_DIFF), totalLines: 3 };
+  const key = createReviewCacheKey({
+    provider: "anthropic",
+    model: "claude-opus-4-7",
+    meaningContents: "version: 1",
+    diff,
+  });
+  writeReviewCache(cacheDir, key, {
+    usage: { inputTokens: 100, outputTokens: 20 },
+    findings: [
+      {
+        constraint_id: "C-FIN-NO-DOUBLE-PAY-001",
+        verdict: "at_risk",
+        confidence: "high",
+        rationale: "Cached result",
+      },
+    ],
+  });
+  const cached = readReviewCache(cacheDir, key);
+  assert.equal(cached.findings.length, 1);
+  assert.equal(cached.usage.inputTokens, 100);
+  rmSync(cacheDir, { recursive: true, force: true });
+});
+
+test("defaultReviewCacheDir lives under .meaning-cache/review", () => {
+  const path = defaultReviewCacheDir("/tmp/demo-repo");
+  assert.match(path, /\.meaning-cache\/review$/);
+});
+
 test("estimateTokens scales with length", () => {
   assert.ok(estimateTokens("a".repeat(400)) >= 100);
 });
@@ -436,6 +494,37 @@ test("renderText shows constraint id and severity", () => {
   assert.match(out, /C-FIN-NO-DOUBLE-PAY-001/);
   assert.match(out, /AT RISK/);
   assert.match(out, /Summary: 1 block/);
+});
+
+test("renderText notes cache hits", () => {
+  const out = renderText(
+    {
+      commandName: "review",
+      meaningFile: "MEANING.yaml",
+      system: "demo",
+      version: "1.0.0",
+      judge: {
+        provider: "anthropic",
+        model: "claude-opus-4-7",
+        cacheHit: true,
+        cacheKey: "anthropic:demo",
+      },
+      diff: { base: "main", head: "HEAD", files: 1, lines: 3 },
+      findings: [],
+      stats: {
+        constraintsTotal: 1,
+        constraintsReviewed: 1,
+        calls: 0,
+        inputTokens: 100,
+        outputTokens: 20,
+        costUsd: 0,
+        cacheSavedUsd: 0.01,
+      },
+      insufficientContext: [],
+    },
+    { noColor: true }
+  );
+  assert.match(out, /cache hit/);
 });
 
 test("renderText includes insufficient_context rationale", () => {
@@ -485,9 +574,24 @@ test("renderJson emits stable v1 shape", () => {
     meaningFile: "M",
     system: "s",
     version: "1.0.0",
+    judge: {
+      provider: "openai",
+      model: "gpt-5.4-mini",
+      cacheHit: true,
+      cacheKey: "key",
+      cachedAt: "2026-01-01T00:00:00.000Z",
+    },
     diff: { base: "main", head: "HEAD", files: 0, lines: 0 },
     findings: [],
-    stats: { constraintsTotal: 0, constraintsReviewed: 0, calls: 0, inputTokens: 0, outputTokens: 0, costUsd: 0 },
+    stats: {
+      constraintsTotal: 0,
+      constraintsReviewed: 0,
+      calls: 0,
+      inputTokens: 0,
+      outputTokens: 0,
+      costUsd: 0,
+      cacheSavedUsd: 0.02,
+    },
     insufficientContext: [
       {
         constraintId: "C-OPS-RUNBOOK-009",
@@ -499,18 +603,25 @@ test("renderJson emits stable v1 shape", () => {
   const parsed = JSON.parse(out);
   assert.equal(parsed.version, "1");
   assert.ok(Array.isArray(parsed.findings));
+  assert.equal(parsed.judge.provider, "openai");
+  assert.equal(parsed.stats.cache_saved_usd, 0.02);
   assert.equal(parsed.insufficient_context[0].constraint_id, "C-OPS-RUNBOOK-009");
 });
 
 test("renderSarif produces valid 2.1.0 envelope with rules", () => {
   const out = renderSarif(
-    {
-      commandName: "review",
-      meaningFile: "M",
-      system: "s",
-      version: "1.0.0",
-      diff: { base: "main", head: "HEAD", files: 1, lines: 3 },
-      findings: [
+      {
+        commandName: "review",
+        meaningFile: "M",
+        system: "s",
+        version: "1.0.0",
+        judge: {
+          provider: "anthropic",
+          model: "claude-opus-4-7",
+          cacheHit: false,
+        },
+        diff: { base: "main", head: "HEAD", files: 1, lines: 3 },
+        findings: [
         {
           constraintId: "C-FIN-NO-DOUBLE-PAY-001",
           severity: "block",
@@ -547,4 +658,5 @@ test("review help includes provider option", () => {
     encoding: "utf8",
   });
   assert.match(out, /\bprovider\b/);
+  assert.match(out, /\bcache-dir\b/);
 });

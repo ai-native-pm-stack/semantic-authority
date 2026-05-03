@@ -55,12 +55,16 @@ node dist/index.js drift --base origin/main
 node dist/index.js review --provider openai --model gpt-5.4-mini --base origin/main
 node dist/index.js review --staged --format json
 node dist/index.js review --base origin/main --sarif-output meaning-review.sarif
+node dist/index.js review --cache-dir .meaning-cache/review
+node dist/index.js review --no-cache
 ```
 
 `review` and `drift` share the same engine today:
 
 - `review` is the PR / CI framing
 - `drift` is the semantic-governance framing
+
+Review results are cached locally by `(diff_hash, meaning_hash, model_id, provider)` under `.meaning-cache/review` by default. Use `--no-cache` to force a fresh judge call, or `--cache-dir` to relocate the cache.
 
 ## Smoke Test
 

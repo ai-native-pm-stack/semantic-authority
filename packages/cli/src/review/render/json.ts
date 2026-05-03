@@ -7,6 +7,15 @@ export function renderJson(result: ReviewResult): string {
       meaning_file: result.meaningFile,
       system: result.system,
       meaning_version: result.version,
+      judge: result.judge
+        ? {
+            provider: result.judge.provider,
+            model: result.judge.model,
+            cache_hit: result.judge.cacheHit,
+            cache_key: result.judge.cacheKey,
+            cached_at: result.judge.cachedAt,
+          }
+        : undefined,
       diff: result.diff,
       findings: result.findings.map((f) => ({
         constraint_id: f.constraintId,
@@ -31,6 +40,10 @@ export function renderJson(result: ReviewResult): string {
         input_tokens: result.stats.inputTokens,
         output_tokens: result.stats.outputTokens,
         cost_usd: Number(result.stats.costUsd.toFixed(4)),
+        cache_saved_usd:
+          result.stats.cacheSavedUsd !== undefined
+            ? Number(result.stats.cacheSavedUsd.toFixed(4))
+            : undefined,
       },
     },
     null,

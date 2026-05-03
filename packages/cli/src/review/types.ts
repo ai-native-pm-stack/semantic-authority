@@ -84,6 +84,13 @@ export interface ReviewResult {
   meaningFile: string;
   system: string;
   version: string;
+  judge?: {
+    provider: JudgeProvider;
+    model: string;
+    cacheHit: boolean;
+    cacheKey?: string;
+    cachedAt?: string;
+  };
   diff: { base: string; head: string; files: number; lines: number };
   findings: Finding[];
   stats: {
@@ -93,6 +100,7 @@ export interface ReviewResult {
     inputTokens: number;
     outputTokens: number;
     costUsd: number;
+    cacheSavedUsd?: number;
   };
   insufficientContext: InsufficientContextItem[];
 }
