@@ -102,11 +102,13 @@ Converts `MEANING.yaml` into a `.claude/meaning-context.md` that Claude Code, Cu
 ### 4. Review code changes against MEANING.yaml
 
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-...
-node packages/cli/dist/index.js review --base origin/main
+export OPENAI_API_KEY=sk-proj-...
+# or: export ANTHROPIC_API_KEY=sk-ant-...
+
+node packages/cli/dist/index.js review --provider openai --model gpt-5.4-mini --base origin/main
 ```
 
-Block-level findings exit non-zero. See [docs/REVIEW.md](./docs/REVIEW.md) for local + CI flows, output formats, exit codes, cost controls, and limitations.
+Block-level findings exit non-zero. Anthropic and OpenAI are both supported. See [docs/REVIEW.md](./docs/REVIEW.md) for local + CI flows, output formats, exit codes, cost controls, and limitations.
 
 ### 5. Wire up CI
 
@@ -131,6 +133,38 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
+
+---
+
+## Current Evidence
+
+This repo now includes one real-project **live** benchmark on Orlo using its
+`docs/MEANING.yaml` and a cold, no-cache OpenAI run:
+
+- provider / model: `openai` / `gpt-5.4-mini`
+- 10 recent commit diffs
+- successful runs: `10 / 10`
+- average latency: `11.3s`
+- p95 latency: `17.6s`
+- average review cost: `$0.0240`
+- p95 review cost: `$0.0806`
+- total at-risk findings: `0`
+- total `insufficient_context` verdicts: `111`
+
+On this sample, the current OpenAI path is within the PRD latency and cost
+targets. The dominant output was `insufficient_context`, which is useful
+evidence that meaning quality itself is now observable during review.
+
+Artifacts:
+
+- [docs/evidence/ORLO_DOGFOOD.md](./docs/evidence/ORLO_DOGFOOD.md)
+- [docs/evidence/orlo-dogfood-live.json](./docs/evidence/orlo-dogfood-live.json)
+- [docs/evidence/orlo-dogfood-estimate.json](./docs/evidence/orlo-dogfood-estimate.json)
+
+What this does not yet show:
+
+- labeled precision / recall
+- one published SARIF artifact or screenshot from a real PR
 
 ---
 
@@ -193,6 +227,7 @@ Full worked example: [examples/invoice-processor/MEANING.yaml](./examples/invoic
 | [action/README.md](./action/README.md) | Engineers, DevOps | GitHub Action usage and release-state notes |
 | [PRD_MEANING_REVIEW.md](./PRD_MEANING_REVIEW.md) | Maintainers, contributors | Full PRD + ERD for the `meaning review` enforcement build |
 | [examples/invoice-processor/SCENARIOS.md](./examples/invoice-processor/SCENARIOS.md) | Anyone evaluating | Three runnable review scenarios |
+| [docs/evidence/ORLO_DOGFOOD.md](./docs/evidence/ORLO_DOGFOOD.md) | Evaluators, maintainers | Real-project dogfood notes and cost-estimate artifact |
 
 ---
 

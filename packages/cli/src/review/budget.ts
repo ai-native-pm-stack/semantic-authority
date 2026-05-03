@@ -1,5 +1,5 @@
 import type { Constraint, Diff } from "./types.js";
-import { fileContextToText } from "./diff.js";
+import { diffToText, fileContextToText } from "./diff.js";
 
 // Pricing per 1M tokens (USD). Conservative defaults; override via --pricing later.
 const PRICING: Record<string, { input: number; output: number }> = {
@@ -23,7 +23,7 @@ export function estimatePromptTokens(constraints: Constraint[], diff: Diff): num
   const constraintText = constraints
     .map((c) => `${c.id} ${c.description} ${c.rationale} ${c.verification_notes ?? ""}`)
     .join("\n");
-  const diffText = diff.files.map((f) => f.rawPatch).join("\n");
+  const diffText = diffToText(diff);
   const fileContextText = fileContextToText(diff);
   return (
     estimateTokens(constraintText) +

@@ -5,7 +5,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { parseUnifiedDiff, lineTouchesDiffHunk, fileContextToText } from "../dist/review/diff.js";
+import { parseUnifiedDiff, lineTouchesDiffHunk, fileContextToText, diffToText } from "../dist/review/diff.js";
 import { prefilter, globMatch } from "../dist/review/prefilter.js";
 import { aggregate, quoteAppearsInDiff, exitCodeFor } from "../dist/review/aggregate.js";
 import {
@@ -96,6 +96,62 @@ test("fileContextToText includes full file context when available", () => {
   const text = fileContextToText({ base: "main", head: "HEAD", files: [file], totalLines: 3 });
   assert.match(text, /full_file_context: included/);
   assert.match(text, /submitPayment/);
+});
+
+test("fileContextToText omits files once the global context cap is reached", () => {
+  const files = parseUnifiedDiff(
+    `diff --git a/a.ts b/a.ts
+index abc..def 100644
+--- a/a.ts
++++ b/a.ts
+@@ -1 +1 @@
+-a
++b
+diff --git a/b.ts b/b.ts
+index abc..def 100644
+--- a/b.ts
++++ b/b.ts
+@@ -1 +1 @@
+-a
++b
+`
+  );
+  files[0].fullText = "x".repeat(120);
+  files[1].fullText = "y".repeat(120);
+  const text = fileContextToText({ base: "main", head: "HEAD", files, totalLines: 2 }, 800, 180);
+  assert.match(text, /## a\.ts/);
+  assert.match(text, /## b\.ts/);
+  assert.match(text, /global context cap reached/);
+});
+
+test("diffToText omits remaining files once the global diff cap is reached", () => {
+  const diff = parseUnifiedDiff(
+    `diff --git a/a.ts b/a.ts
+index abc..def 100644
+--- a/a.ts
++++ b/a.ts
+@@ -1,3 +1,3 @@
+-a
+-b
+-c
++d
++e
++f
+diff --git a/b.ts b/b.ts
+index abc..def 100644
+--- a/b.ts
++++ b/b.ts
+@@ -1,3 +1,3 @@
+-a
+-b
+-c
++d
++e
++f
+`
+  );
+  const text = diffToText({ base: "main", head: "HEAD", files: diff, totalLines: 6 }, 10, 6);
+  assert.match(text, /diff for b\.ts omitted \(global diff line cap reached\)/);
 });
 
 test("globMatch handles ** and *", () => {

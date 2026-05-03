@@ -182,46 +182,89 @@ function extractPathFromGitHeader(line: string): string | undefined {
   return m ? m[2] : undefined;
 }
 
-export function diffToText(diff: Diff, maxLinesPerFile = 1500): string {
+export function diffToText(diff: Diff, maxLinesPerFile = 1500, maxTotalLines = 6000): string {
   const parts: string[] = [];
+  let remainingLines = maxTotalLines;
   for (const f of diff.files) {
-    const patch = f.rawPatch.split("\n").slice(0, maxLinesPerFile).join("\n");
-    parts.push(patch);
+    if (remainingLines <= 0) {
+      parts.push(`diff for ${f.path} omitted (global diff line cap reached)`);
+      continue;
+    }
+
+    const patchLines = f.rawPatch.split("\n");
+    const take = Math.min(maxLinesPerFile, remainingLines, patchLines.length);
+    const patch = patchLines.slice(0, take).join("\n");
+    remainingLines -= take;
+
+    const truncated =
+      patchLines.length > take
+        ? `\n... diff truncated for ${f.path} (${patchLines.length - take} lines omitted)`
+        : "";
+
+    parts.push(patch + truncated);
   }
   return parts.join("\n");
 }
 
-export function fileContextToText(diff: Diff, maxFullFileLines = 800): string {
+export function fileContextToText(
+  diff: Diff,
+  maxFullFileLines = 800,
+  maxTotalChars = 120_000
+): string {
   const sections: string[] = [];
+  let remainingChars = maxTotalChars;
 
   for (const file of diff.files) {
-    if (!file.fullText) {
+    if (remainingChars <= 0) {
       sections.push(
         `## ${file.path}\n` +
           `status: ${file.status}\n` +
-          `full_file_context: unavailable\n`
+          "full_file_context: omitted (global context cap reached)\n"
       );
+      continue;
+    }
+
+    if (!file.fullText) {
+      const section =
+        `## ${file.path}\n` +
+          `status: ${file.status}\n` +
+          `full_file_context: unavailable\n`;
+      sections.push(section);
+      remainingChars -= section.length;
       continue;
     }
 
     const lineCount = file.fullText.split("\n").length;
     if (lineCount > maxFullFileLines) {
-      sections.push(
+      const section =
         `## ${file.path}\n` +
           `status: ${file.status}\n` +
-          `full_file_context: omitted (${lineCount} lines > ${maxFullFileLines} line cap)\n`
-      );
+          `full_file_context: omitted (${lineCount} lines > ${maxFullFileLines} line cap)\n`;
+      sections.push(section);
+      remainingChars -= section.length;
       continue;
     }
 
-    sections.push(
+    const section =
       `## ${file.path}\n` +
         `status: ${file.status}\n` +
         `full_file_context: included (${lineCount} lines)\n` +
         "```text\n" +
         file.fullText +
-        "\n```"
-    );
+        "\n```";
+
+    if (section.length > remainingChars) {
+      const omitted =
+        `## ${file.path}\n` +
+        `status: ${file.status}\n` +
+        "full_file_context: omitted (global context cap reached)\n";
+      sections.push(omitted);
+      remainingChars -= omitted.length;
+      continue;
+    }
+
+    sections.push(section);
+    remainingChars -= section.length;
   }
 
   return sections.join("\n\n");
