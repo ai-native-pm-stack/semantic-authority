@@ -2,10 +2,16 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { parseUnifiedDiff, lineTouchesDiffHunk } from "../dist/review/diff.js";
+import { parseUnifiedDiff, lineTouchesDiffHunk, fileContextToText } from "../dist/review/diff.js";
 import { prefilter, globMatch } from "../dist/review/prefilter.js";
 import { aggregate, quoteAppearsInDiff, exitCodeFor } from "../dist/review/aggregate.js";
-import { parseJudgeResponse, buildConstraintBlock } from "../dist/review/judge.js";
+import {
+  parseAnthropicResponse,
+  parseOpenAIResponse,
+  buildConstraintBlock,
+  buildUserPrompt,
+  resolveJudgeProvider,
+} from "../dist/review/judge.js";
 import { estimateTokens, checkBudget, estimateCostUsd } from "../dist/review/budget.js";
 import { renderText } from "../dist/review/render/text.js";
 import { renderJson } from "../dist/review/render/json.js";
@@ -72,6 +78,14 @@ index 0000000..abc
   const files = parseUnifiedDiff(diff);
   assert.equal(files[0].status, "added");
   assert.equal(files[0].path, "x.ts");
+});
+
+test("fileContextToText includes full file context when available", () => {
+  const [file] = parseUnifiedDiff(SAMPLE_DIFF);
+  file.fullText = `export async function submitPayment(invoice) {\n  return await chargeProvider(invoice);\n}`;
+  const text = fileContextToText({ base: "main", head: "HEAD", files: [file], totalLines: 3 });
+  assert.match(text, /full_file_context: included/);
+  assert.match(text, /submitPayment/);
 });
 
 test("globMatch handles ** and *", () => {
@@ -295,7 +309,7 @@ test("exitCodeFor returns 1 only at or above threshold", () => {
   assert.equal(exitCodeFor([{ severity: "block" }], "block"), 1);
 });
 
-test("parseJudgeResponse extracts findings from tool_use", () => {
+test("parseAnthropicResponse extracts findings from tool_use", () => {
   const fake = {
     content: [
       {
@@ -316,15 +330,66 @@ test("parseJudgeResponse extracts findings from tool_use", () => {
     ],
     usage: { input_tokens: 100, output_tokens: 20 },
   };
-  const r = parseJudgeResponse(fake);
+  const r = parseAnthropicResponse(fake);
   assert.equal(r.findings.length, 1);
   assert.equal(r.usage.inputTokens, 100);
+});
+
+test("parseOpenAIResponse extracts findings from tool_calls", () => {
+  const fake = {
+    choices: [
+      {
+        message: {
+          tool_calls: [
+            {
+              function: {
+                name: "report_findings",
+                arguments: JSON.stringify({
+                  findings: [
+                    {
+                      constraint_id: "C-FIN-NO-DOUBLE-PAY-001",
+                      verdict: "at_risk",
+                      confidence: "high",
+                      rationale: "test",
+                    },
+                  ],
+                }),
+              },
+            },
+          ],
+        },
+      },
+    ],
+    usage: { prompt_tokens: 88, completion_tokens: 21 },
+  };
+  const r = parseOpenAIResponse(fake);
+  assert.equal(r.findings.length, 1);
+  assert.equal(r.usage.inputTokens, 88);
 });
 
 test("buildConstraintBlock includes id, enforcement, description", () => {
   const text = buildConstraintBlock(SAMPLE_CONSTRAINTS);
   assert.match(text, /C-FIN-NO-DOUBLE-PAY-001/);
   assert.match(text, /enforcement: block/);
+});
+
+test("buildUserPrompt includes changed-file context section", () => {
+  const [file] = parseUnifiedDiff(SAMPLE_DIFF);
+  file.fullText = `export async function submitPayment(invoice) {\n  return await chargeProvider(invoice);\n}`;
+  const prompt = buildUserPrompt(SAMPLE_CONSTRAINTS, {
+    base: "main",
+    head: "HEAD",
+    files: [file],
+    totalLines: 3,
+  });
+  assert.match(prompt.fileContext, /Changed file context/);
+  assert.match(prompt.fileContext, /submitPayment/);
+});
+
+test("resolveJudgeProvider infers provider from model id", () => {
+  assert.equal(resolveJudgeProvider("claude-opus-4-7"), "anthropic");
+  assert.equal(resolveJudgeProvider("gpt-5.4-mini"), "openai");
+  assert.equal(resolveJudgeProvider("claude-opus-4-7", "openai"), "openai");
 });
 
 test("estimateTokens scales with length", () => {
@@ -474,4 +539,12 @@ test("CLI help includes drift command", () => {
     encoding: "utf8",
   });
   assert.match(out, /\bdrift\b/);
+});
+
+test("review help includes provider option", () => {
+  const out = execFileSync(process.execPath, ["dist/index.js", "review", "--help"], {
+    cwd: fileURLToPath(new URL("../", import.meta.url)),
+    encoding: "utf8",
+  });
+  assert.match(out, /\bprovider\b/);
 });

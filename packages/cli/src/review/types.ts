@@ -40,6 +40,7 @@ export interface FileDiff {
   status: "added" | "modified" | "deleted" | "renamed";
   hunks: DiffHunk[];
   rawPatch: string;
+  fullText?: string;
 }
 
 export interface Diff {
@@ -102,3 +103,5 @@ export interface JudgeUsage {
   cacheReadTokens?: number;
   cacheCreationTokens?: number;
 }
+
+export type JudgeProvider = "anthropic" | "openai";

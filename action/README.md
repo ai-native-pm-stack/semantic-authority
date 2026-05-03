@@ -4,9 +4,7 @@ This action wraps the `meaning` CLI so pull requests can validate `MEANING.yaml`
 
 ## Usage
 
-This repo includes the composite Action definition now. External usage becomes turnkey after the npm package for `@semantic-authority/cli` is published, because the Action currently installs the CLI from npm.
-
-Target external usage after npm publish:
+This repo includes the composite Action definition now. The Action builds the CLI directly from this repository, so external usage works today without waiting for npm publication.
 
 ```yaml
 name: Meaning Gate
@@ -28,11 +26,10 @@ jobs:
         with:
           mode: both
           fail-on: block
+          provider: anthropic
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
-
-Until npm publish, treat this Action README as the reference workflow shape and run the CLI from source for local or in-repo testing.
 
 For repo-local development, use the default branch or a commit SHA:
 
@@ -49,17 +46,41 @@ For repo-local development, use the default branch or a commit SHA:
 - `meaning-file`: path to the `MEANING.yaml` file. Default: `./MEANING.yaml`
 - `base`: base ref for review mode. Defaults to the PR base ref or `main`
 - `fail-on`: severity threshold that exits non-zero in review mode. Default: `block`
-- `model`: Anthropic model id for the review judge
+- `provider`: `anthropic` or `openai`. Default: `anthropic`
+- `model`: model id for the review judge
 - `budget-usd`: per-run cost cap for review mode. Default: `1.00`
 - `upload-sarif`: upload code-scanning annotations when review mode runs. Default: `true`
 
 ## What It Does
 
 1. installs Node.js 20
-2. installs `@semantic-authority/cli`
+2. runs `npm ci` and `npm run build` inside this repo's `packages/cli`
 3. runs `meaning validate`
 4. runs `meaning review` once, writes the text report into `GITHUB_STEP_SUMMARY`, and optionally emits SARIF from the same judgment
 5. uploads SARIF so GitHub can render inline annotations and code-scanning alerts
+
+## Provider setup
+
+Anthropic:
+
+```yaml
+env:
+  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+```
+
+OpenAI:
+
+```yaml
+with:
+  provider: openai
+  model: gpt-5.4-mini
+env:
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+```
+
+## Roadmap
+
+- publish `@semantic-authority/cli` to npm so local CLI usage becomes `npx @semantic-authority/cli ...`
 
 ## Smoke Test
 

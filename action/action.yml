@@ -35,8 +35,12 @@ inputs:
     description: "Severity threshold for review mode: block | warn | observe"
     required: false
     default: "block"
+  provider:
+    description: "Judge provider: anthropic | openai"
+    required: false
+    default: "anthropic"
   model:
-    description: "Anthropic model id for the review judge"
+    description: "Model id for the review judge"
     required: false
     default: "claude-opus-4-7"
   budget-usd:
@@ -56,18 +60,22 @@ runs:
       with:
         node-version: "20"
 
-    - name: Install Semantic Authority CLI
+    - name: Build Semantic Authority CLI from this repo
       shell: bash
-      run: npm install -g @semantic-authority/cli
+      run: |
+        CLI_DIR="${{ github.action_path }}/../packages/cli"
+        npm ci --prefix "$CLI_DIR"
+        npm run build --prefix "$CLI_DIR"
 
     - name: Validate MEANING.yaml
       if: inputs.mode == 'validate' || inputs.mode == 'both' || (inputs.mode == '' && inputs.validate == 'true')
       shell: bash
       run: |
+        CLI_ENTRY="${{ github.action_path }}/../packages/cli/dist/index.js"
         if [ "${{ inputs.strict }}" = "true" ]; then
-          meaning validate --file "${{ inputs.meaning-file }}" --strict
+          node "$CLI_ENTRY" validate --file "${{ inputs.meaning-file }}" --strict
         else
-          meaning validate --file "${{ inputs.meaning-file }}"
+          node "$CLI_ENTRY" validate --file "${{ inputs.meaning-file }}"
         fi
 
     - name: Run meaning review
@@ -85,7 +93,8 @@ runs:
         echo '```' >> $GITHUB_STEP_SUMMARY
 
         REVIEW_ARGS=(
-          meaning review
+          node "${{ github.action_path }}/../packages/cli/dist/index.js" review
+          --provider "${{ inputs.provider }}"
           --meaning "${{ inputs.meaning-file }}"
           --base "origin/$BASE"
           --model "${{ inputs.model }}"

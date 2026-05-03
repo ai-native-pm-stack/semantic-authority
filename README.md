@@ -119,7 +119,7 @@ It is a shared semantic layer with different projections for each part of the te
 | **Artifact** | MEANING.yaml declares what the system means | PM, Architect, Tech Lead (authors); Devs + Agents (consumers) | ✅ Shipped |
 | **Schema validation** | `meaning validate` + Action confirm the file is well-formed | CI | ✅ Shipped |
 | **Agent context** | `meaning context` emits a Claude-loadable context file | Devs, Agents | ✅ Shipped (Claude); Cursor/Copilot emitters are roadmap |
-| **Semantic drift detection + gating** | `meaning drift <diff>` / `meaning review <diff>` ask an LLM judge whether a diff plausibly puts any constraint at risk and can fail CI on `block`-level findings | CI, Devs | ✅ Implemented in-source; public install path pending npm publish |
+| **Semantic drift detection + gating** | `meaning drift <diff>` / `meaning review <diff>` ask an LLM judge whether a diff plausibly puts any constraint at risk and can fail CI on `block`-level findings | CI, Devs | ✅ Shipped from source + GitHub Action; npm publish is a convenience roadmap item |
 
 ---
 
@@ -159,15 +159,15 @@ Converts MEANING.yaml into a `.claude/meaning-context.md` that Claude Code, Curs
 
 ### 4. CI status
 
-The composite GitHub Action is implemented in [action/action.yml](./action/action.yml), including `mode: review`, one-pass SARIF generation, and merge gating. It is **not yet turnkey for external repos** because it currently installs `@semantic-authority/cli` from npm, and the npm package is not published yet.
+The composite GitHub Action is implemented in [action/action.yml](./action/action.yml), including `mode: review`, one-pass SARIF generation, and merge gating. It now builds the CLI directly from this repo, so the Action is usable in external repos today without waiting for npm publication.
 
 What you can do right now:
 
 - run `meaning validate`, `meaning context`, `meaning review`, and `meaning drift` from a local source checkout
-- use the Action definition in this repo as the reference workflow shape
-- publish the npm package later to make `npx` and external Action usage turnkey
+- use the Action directly from GitHub in external repos
+- publish the npm package later to make `npx @semantic-authority/cli ...` turnkey for local CLI adoption
 
-After npm publish, this is the intended external CI workflow:
+This is the current external CI workflow:
 
 ```yaml
 # .github/workflows/meaning.yml
@@ -187,9 +187,14 @@ jobs:
         with:
           mode: both
           fail-on: block
+          provider: anthropic
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
+
+Public roadmap:
+
+- publish `@semantic-authority/cli` to npm so teams can use `npx @semantic-authority/cli ...` without cloning the repo first
 
 ---
 
@@ -212,10 +217,12 @@ Two important truths:
 npm install --prefix packages/cli
 npm run build --prefix packages/cli
 export ANTHROPIC_API_KEY=sk-ant-...
+export OPENAI_API_KEY=sk-proj-...
 
 # From a checkout of this repo:
 node packages/cli/dist/index.js drift --base origin/main
 node packages/cli/dist/index.js review --base origin/main
+node packages/cli/dist/index.js review --provider openai --model gpt-5.4-mini --base origin/main
 
 # After npm publish, the same command becomes:
 # meaning drift --base origin/main
@@ -282,6 +289,7 @@ jobs:
           mode: review
           base: ${{ github.base_ref }}
           fail-on: block
+          provider: anthropic
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
@@ -298,7 +306,7 @@ A developer adds a retry loop to `submitPayment()` and pushes the branch.
 
 1. CI runs `meaning review --base origin/main --format text --sarif-output meaning-review.sarif`.
 2. The CLI loads `MEANING.yaml`, resolves the diff, and pre-filters constraints to those whose `path_globs` match the changed files plus all `block`-level constraints.
-3. It calls Claude once with the constraints + diff. Claude returns one finding via a forced `report_findings` tool call.
+3. It calls the configured LLM provider once with the constraints + full changed-file context + diff. The model returns findings via a forced `report_findings` tool call.
 4. The same review result is rendered to both the workflow summary and SARIF; SARIF is uploaded; the PR check goes red; an annotation lands on `src/payments/submit.ts:42` citing `C-FIN-NO-DOUBLE-PAY-001`.
 5. Developer reads the rationale, adds the idempotency assert, pushes again.
 6. CI re-runs; the judge now sees the assert in the diff; finding clears; check goes green; merge unblocked.
@@ -317,7 +325,7 @@ Common situations:
 
 - **No API key in CI** → exit 2, with a setup link.
 - **Diff too large for budget** → exit 3, "split or raise `--budget-usd`."
-- **Anthropic outage** → retries, then exit 4. Teams can set `continue-on-error: true` until the gate is trusted.
+- **Anthropic or OpenAI outage** → retries, then exit 4. Teams can set `continue-on-error: true` until the gate is trusted.
 - **Vague constraint** → verdict comes back `insufficient_context`; surfaced as a notice, not a block. That is the signal to sharpen `MEANING.yaml`.
 - **False positives / false negatives** → this is why `meaning review` should be framed as constraint-risk detection, not proof. Keep the gate narrow at first (`fail-on: block`), keep tests in place, and tune constraints with real review feedback.
 
@@ -348,7 +356,7 @@ Scope today:
 ### Limitations
 
 - Reasons over the diff plus full text of changed files. Does not chase call graphs across files.
-- Anthropic-only. Provider abstraction is a v0.3.0 concern.
+- Changed-file context is included only when the file is available from the workspace or the base revision and stays under the line cap; otherwise the judge falls back to diff-only context for that file.
 - No cross-run finding cache yet.
 - Auto-fix is not in scope; suggestions are text only.
 
@@ -467,12 +475,12 @@ drift_policy:
 
 **Architects & Tech Leads** author constraints and enforcement levels. They run `meaning validate` during design reviews. They review cross-system meaning coherence when constraints in one service affect another.
 
-**Engineers** read MEANING.yaml before writing code. They can run `meaning review` locally from source today, and once npm is published the same workflow becomes a drop-in CLI / Action experience with inline PR annotations citing the constraint IDs their diff puts at risk.
+**Engineers** read MEANING.yaml before writing code. They can run `meaning review` locally from source today, and once npm is published the same workflow becomes a drop-in `npx` experience while the GitHub Action already works from the repo with inline PR annotations citing the constraint IDs their diff puts at risk.
 They can also run `meaning drift` as the same engine framed explicitly as semantic drift detection.
 
 **AI Agents** (Claude Code today; Cursor and Copilot emitters on the v0.3.0 roadmap) receive auto-generated context from `meaning context`. They know the system's goals, respect its non-goals, honor its constraints by ID, and understand its trade-offs before writing a single line of code.
 
-**CI Pipelines** can already use the in-repo implementation as the reference gating flow. The public turnkey path for external repos lands once `@semantic-authority/cli` is published to npm, because the composite Action currently installs the CLI from npm.
+**CI Pipelines** can already use the GitHub Action in external repos today. npm publication remains a convenience step for local CLI distribution, not a blocker for CI adoption.
 
 ---
 

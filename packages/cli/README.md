@@ -49,8 +49,10 @@ Review the current diff against declared constraints:
 
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
+export OPENAI_API_KEY=sk-proj-...
 node dist/index.js review --base origin/main
 node dist/index.js drift --base origin/main
+node dist/index.js review --provider openai --model gpt-5.4-mini --base origin/main
 node dist/index.js review --staged --format json
 node dist/index.js review --base origin/main --sarif-output meaning-review.sarif
 ```
@@ -79,3 +81,8 @@ The automated suite covers:
 - enforcing `--strict` warnings as failures
 - generating agent context output
 - scaffolding a usable artifact with `init --non-interactive`
+- provider inference and OpenAI response parsing for review mode
+
+## Roadmap
+
+- publish `@semantic-authority/cli` to npm so the same commands can run via `npx @semantic-authority/cli ...`

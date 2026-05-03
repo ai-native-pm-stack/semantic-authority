@@ -4,7 +4,7 @@ import { parse as parseYaml } from "yaml";
 import chalk from "chalk";
 import { resolveDiff } from "../review/diff.js";
 import { prefilter } from "../review/prefilter.js";
-import { callJudge } from "../review/judge.js";
+import { callJudge, resolveJudgeProvider } from "../review/judge.js";
 import { aggregate, exitCodeFor } from "../review/aggregate.js";
 import { checkBudget, estimateCostUsd } from "../review/budget.js";
 import { renderText } from "../review/render/text.js";
@@ -14,6 +14,7 @@ import type { Constraint, MeaningDoc, ReviewResult, Severity } from "../review/t
 
 export interface ReviewOptions {
   surfaceName?: "review" | "drift";
+  provider?: string;
   meaning: string;
   base?: string;
   diff?: string;
@@ -45,17 +46,22 @@ export async function reviewCommand(args: string[], options: ReviewOptions): Pro
       fail(2, `MEANING.yaml has no constraints array.`);
     }
 
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    const provider = resolveJudgeProvider(options.model, options.provider);
+    const apiKeyEnv = provider === "openai" ? "OPENAI_API_KEY" : "ANTHROPIC_API_KEY";
+    const apiKey = process.env[apiKeyEnv];
     if (!apiKey) {
       fail(
         2,
-        "ANTHROPIC_API_KEY environment variable is not set.",
-        "Get a key at https://console.anthropic.com and export it before running review."
+        `${apiKeyEnv} environment variable is not set.`,
+        provider === "openai"
+          ? "Create an OpenAI API key and export it before running review."
+          : "Get a key at https://console.anthropic.com and export it before running review."
       );
     }
 
     if (options.verbose) {
       console.error(chalk.dim(`[review] meaning: ${meaningPath}`));
+      console.error(chalk.dim(`[review] provider:${provider}`));
       console.error(chalk.dim(`[review] model:   ${options.model}`));
     }
 
@@ -117,6 +123,7 @@ export async function reviewCommand(args: string[], options: ReviewOptions): Pro
     let judgeResult;
     try {
       judgeResult = await callJudge(reviewedConstraints, diff, {
+        provider,
         model: options.model,
         apiKey,
       });

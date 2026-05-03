@@ -1,5 +1,5 @@
 import { execSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import type { Diff, FileDiff, DiffHunk } from "./types.js";
 
 export interface DiffSourceOptions {
@@ -14,19 +14,23 @@ export async function resolveDiff(opts: DiffSourceOptions): Promise<Diff> {
   let raw: string;
   let base = opts.base ?? "main";
   let head = "HEAD";
+  let sourceKind: "stdin" | "patch" | "staged" | "git" = "git";
 
   if (opts.stdin) {
     raw = opts.stdinContent ?? (await readStdin());
     base = "stdin";
     head = "stdin";
+    sourceKind = "stdin";
   } else if (opts.diffFile) {
     raw = readFileSync(opts.diffFile, "utf-8");
     base = opts.diffFile;
     head = "patch";
+    sourceKind = "patch";
   } else if (opts.staged) {
     raw = git(["diff", "--staged", "--unified=3", "--no-color"]);
     base = "staged";
     head = "working-tree";
+    sourceKind = "staged";
   } else {
     const resolvedBase = resolveBase(base);
     base = resolvedBase;
@@ -38,7 +42,10 @@ export async function resolveDiff(opts: DiffSourceOptions): Promise<Diff> {
     ]);
   }
 
-  const files = parseUnifiedDiff(raw);
+  const files = hydrateFileContext(parseUnifiedDiff(raw), {
+    base,
+    sourceKind,
+  });
   const totalLines = files.reduce(
     (sum, f) =>
       sum +
@@ -184,6 +191,42 @@ export function diffToText(diff: Diff, maxLinesPerFile = 1500): string {
   return parts.join("\n");
 }
 
+export function fileContextToText(diff: Diff, maxFullFileLines = 800): string {
+  const sections: string[] = [];
+
+  for (const file of diff.files) {
+    if (!file.fullText) {
+      sections.push(
+        `## ${file.path}\n` +
+          `status: ${file.status}\n` +
+          `full_file_context: unavailable\n`
+      );
+      continue;
+    }
+
+    const lineCount = file.fullText.split("\n").length;
+    if (lineCount > maxFullFileLines) {
+      sections.push(
+        `## ${file.path}\n` +
+          `status: ${file.status}\n` +
+          `full_file_context: omitted (${lineCount} lines > ${maxFullFileLines} line cap)\n`
+      );
+      continue;
+    }
+
+    sections.push(
+      `## ${file.path}\n` +
+        `status: ${file.status}\n` +
+        `full_file_context: included (${lineCount} lines)\n` +
+        "```text\n" +
+        file.fullText +
+        "\n```"
+    );
+  }
+
+  return sections.join("\n\n");
+}
+
 export function changedLineNumbers(file: FileDiff): number[] {
   const numbers: number[] = [];
   for (const h of file.hunks) {
@@ -213,4 +256,37 @@ export function lineTouchesDiffHunk(file: FileDiff, line: number): boolean {
     const end = start + span - 1;
     return line >= start && line <= end;
   });
+}
+
+function hydrateFileContext(
+  files: FileDiff[],
+  opts: { base: string; sourceKind: "stdin" | "patch" | "staged" | "git" }
+): FileDiff[] {
+  return files.map((file) => ({
+    ...file,
+    fullText: readFileContext(file, opts),
+  }));
+}
+
+function readFileContext(
+  file: FileDiff,
+  opts: { base: string; sourceKind: "stdin" | "patch" | "staged" | "git" }
+): string | undefined {
+  if (file.status !== "deleted" && existsSync(file.path)) {
+    return readFileSync(file.path, "utf-8");
+  }
+
+  if (file.oldPath && existsSync(file.oldPath)) {
+    return readFileSync(file.oldPath, "utf-8");
+  }
+
+  if (file.status === "deleted" && file.oldPath && opts.sourceKind === "git") {
+    try {
+      return git(["show", `${opts.base}:${file.oldPath}`]);
+    } catch {
+      return undefined;
+    }
+  }
+
+  return undefined;
 }

@@ -22,7 +22,8 @@ function addReviewLikeCommand(config: {
     .option("-d, --diff <path>", "Read unified diff from a file")
     .option("--staged", "Review staged changes only")
     .option("--stdin", "Read unified diff from stdin")
-    .option("-m, --model <id>", "Anthropic model id", "claude-opus-4-7")
+    .option("-p, --provider <id>", "Judge provider: anthropic | openai")
+    .option("-m, --model <id>", "Judge model id", "claude-opus-4-7")
     .option("--format <fmt>", "Output format: text | json | sarif", "text")
     .option("--only <levels>", "Comma-separated severity filter (block,warn,observe)")
     .option("--fail-on <level>", "Exit non-zero threshold: block | warn | observe", "block")
@@ -36,6 +37,7 @@ function addReviewLikeCommand(config: {
       const args = stdinArg ? [stdinArg] : [];
       return reviewCommand(args, {
         surfaceName: config.surfaceName,
+        provider: opts.provider as string | undefined,
         meaning: (opts.meaning as string) ?? "./MEANING.yaml",
         base: opts.base as string | undefined,
         diff: opts.diff as string | undefined,

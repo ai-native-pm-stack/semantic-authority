@@ -1,10 +1,17 @@
 import type { Constraint, Diff } from "./types.js";
+import { fileContextToText } from "./diff.js";
 
 // Pricing per 1M tokens (USD). Conservative defaults; override via --pricing later.
 const PRICING: Record<string, { input: number; output: number }> = {
   "claude-opus-4-7": { input: 15, output: 75 },
   "claude-sonnet-4-6": { input: 3, output: 15 },
   "claude-haiku-4-5-20251001": { input: 1, output: 5 },
+  "gpt-5.5": { input: 5, output: 30 },
+  "gpt-5.4": { input: 2.5, output: 15 },
+  "gpt-5.4-mini": { input: 0.75, output: 4.5 },
+  "gpt-5.4-nano": { input: 0.2, output: 1.25 },
+  "gpt-5.1": { input: 1.25, output: 10 },
+  "gpt-5": { input: 1.25, output: 10 },
 };
 
 export function estimateTokens(text: string): number {
@@ -17,7 +24,13 @@ export function estimatePromptTokens(constraints: Constraint[], diff: Diff): num
     .map((c) => `${c.id} ${c.description} ${c.rationale} ${c.verification_notes ?? ""}`)
     .join("\n");
   const diffText = diff.files.map((f) => f.rawPatch).join("\n");
-  return estimateTokens(constraintText) + estimateTokens(diffText) + 800; // +overhead
+  const fileContextText = fileContextToText(diff);
+  return (
+    estimateTokens(constraintText) +
+    estimateTokens(diffText) +
+    estimateTokens(fileContextText) +
+    800
+  ); // +overhead
 }
 
 export function estimateCostUsd(
@@ -25,7 +38,7 @@ export function estimateCostUsd(
   inputTokens: number,
   outputTokens: number
 ): number {
-  const p = PRICING[model] ?? PRICING["claude-opus-4-7"];
+  const p = PRICING[model] ?? { input: 15, output: 75 };
   return (inputTokens / 1_000_000) * p.input + (outputTokens / 1_000_000) * p.output;
 }
 
