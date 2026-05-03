@@ -66,7 +66,7 @@ program
   .description(
     "Semantic Authority CLI — validate, enforce, and generate agent context from MEANING.yaml"
   )
-  .version("0.1.0");
+  .version("0.2.0-alpha");
 
 program
   .command("init")

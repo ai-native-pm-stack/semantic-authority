@@ -1,6 +1,6 @@
 {
   "name": "semantic-authority-pitch",
-  "version": "1.0.0",
+  "version": "0.2.0-alpha",
   "private": true,
   "description": "Pitch collateral build tooling for Semantic Authority",
   "scripts": {
