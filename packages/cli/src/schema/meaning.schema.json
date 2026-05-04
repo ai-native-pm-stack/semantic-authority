@@ -61,11 +61,11 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["id", "description", "category", "enforcement", "owner", "rationale", "source", "confidence"],
+        "required": ["id", "description", "category", "enforcement", "owner", "rationale"],
         "properties": {
           "id": {
             "type": "string",
-            "pattern": "^C-(FIN|SEC|COMPLIANCE|DATA|UX|PERF|REL|ARCH|OPS)-[A-Z][A-Z0-9-]+-\\d{3}$",
+            "pattern": "^C-[A-Z][A-Z0-9]*-[A-Z][A-Z0-9-]+-\\d{3}$",
             "description": "Constraint ID: C-<DOMAIN>-<SHORTNAME>-<NNN>"
           },
           "description": {

@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { parseUnifiedDiff, lineTouchesDiffHunk, fileContextToText, diffToText } from "../dist/review/diff.js";
 import { prefilter, globMatch } from "../dist/review/prefilter.js";
 import { aggregate, quoteAppearsInDiff, exitCodeFor } from "../dist/review/aggregate.js";
+import { compileReviewTargets } from "../dist/review/targets.js";
 import {
   createReviewCacheKey,
   defaultReviewCacheDir,
@@ -223,6 +224,7 @@ index abc..def 100644
 test("quoteAppearsInDiff matches normalized substrings", () => {
   const diff = SAMPLE_DIFF;
   assert.ok(quoteAppearsInDiff("return await chargeProvider(invoice);", diff));
+  assert.ok(!quoteAppearsInDiff("const result = await chargeProvider(invoice);", diff));
   assert.ok(!quoteAppearsInDiff("totally fabricated quote that does not exist", diff));
 });
 
@@ -274,7 +276,28 @@ test("aggregate drops findings whose location is not in the diff hunk", () => {
     diff,
   });
   assert.equal(result.findings.length, 0);
-  assert.match(result.dropped[0].reason, /line not present in diff hunk/);
+  assert.match(result.dropped[0].reason, /changed diff region/);
+});
+
+test("aggregate drops findings whose evidence only appears in context lines", () => {
+  const diff = { base: "main", head: "HEAD", files: parseUnifiedDiff(SAMPLE_DIFF), totalLines: 3 };
+  const result = aggregate({
+    rawFindings: [
+      {
+        constraint_id: "C-FIN-NO-DOUBLE-PAY-001",
+        verdict: "at_risk",
+        confidence: "high",
+        file: "src/payments/submit.ts",
+        line: 41,
+        evidence_quote: "const result = await chargeProvider(invoice);",
+        rationale: "Uses unchanged context as evidence.",
+      },
+    ],
+    constraints: SAMPLE_CONSTRAINTS,
+    diff,
+  });
+  assert.equal(result.findings.length, 0);
+  assert.match(result.dropped[0].reason, /changed diff lines/);
 });
 
 test("aggregate canonicalizes renamed file locations to the new path", () => {
@@ -306,8 +329,8 @@ rename to src/new.ts
         verdict: "at_risk",
         confidence: "high",
         file: "src/old.ts",
-        line: 10,
-        evidence_quote: "export const x = 1;",
+        line: 11,
+        evidence_quote: "export const y = x + 1;",
         rationale: "Rename touches the guarded path.",
       },
     ],
@@ -360,10 +383,12 @@ test("aggregate captures insufficient_context", () => {
   assert.equal(result.findings.length, 0);
 });
 
-test("lineTouchesDiffHunk accepts lines inside the changed hunk range", () => {
+test("lineTouchesDiffHunk accepts only changed or deletion-anchored lines", () => {
   const [file] = parseUnifiedDiff(SAMPLE_DIFF);
-  assert.equal(lineTouchesDiffHunk(file, 38), true);
+  assert.equal(lineTouchesDiffHunk(file, 38), false);
+  assert.equal(lineTouchesDiffHunk(file, 40), true);
   assert.equal(lineTouchesDiffHunk(file, 41), true);
+  assert.equal(lineTouchesDiffHunk(file, 43), false);
   assert.equal(lineTouchesDiffHunk(file, 99), false);
 });
 
@@ -439,6 +464,25 @@ test("buildConstraintBlock includes id, enforcement, description", () => {
   assert.match(text, /enforcement: block/);
 });
 
+test("compileReviewTargets adds synthetic non-goal review targets", () => {
+  const targets = compileReviewTargets({
+    system: "invoice-processor",
+    version: "1.0.0",
+    status: "active",
+    owner: "finance-engineering",
+    last_reviewed: "2026-01-01",
+    goal: {
+      primary: "Process invoices",
+      non_goals: ["Does not support multi-currency invoices in v1"],
+    },
+    constraints: SAMPLE_CONSTRAINTS,
+  });
+  assert.equal(targets.length, SAMPLE_CONSTRAINTS.length + 1);
+  assert.equal(targets.at(-1).id, "NG-SCOPE-001");
+  assert.equal(targets.at(-1).enforcement, "warn");
+  assert.match(targets.at(-1).description, /Non-goal:/);
+});
+
 test("buildUserPrompt includes changed-file context section", () => {
   const [file] = parseUnifiedDiff(SAMPLE_DIFF);
   file.fullText = `export async function submitPayment(invoice) {\n  return await chargeProvider(invoice);\n}`;
@@ -473,6 +517,7 @@ test("review cache key changes with provider/model/diff/meaning", () => {
     diff,
   });
   assert.notEqual(formatReviewCacheKey(keyA), formatReviewCacheKey(keyB));
+  assert.ok(keyA.protocolHash);
 });
 
 test("review cache round-trips findings and usage", () => {

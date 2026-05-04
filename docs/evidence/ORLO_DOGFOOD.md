@@ -44,6 +44,30 @@ findings. That means the current Orlo meaning artifact contains many
 constraints that are still useful for human governance but are not yet
 specific enough for reliable code-level review.
 
+## What This Benchmark Proves
+
+- The pipeline runs end-to-end on a real codebase with real diff shapes.
+  That is the concrete `M3` / `M4` evidence from the PRD: reliability,
+  latency, and cost are inside target on non-toy inputs.
+- The estimator is calibrated in the safe direction. Live average cost
+  (`$0.0240`) is about `15%` above estimate (`$0.0209`), while live p95
+  cost (`$0.0806`) stays below estimated p95 (`$0.0931`). Teams can use
+  `--mode estimate` as a practical budgeting surface without paying for a
+  live run first.
+- `insufficient_context` is a real product primitive. The judge does not
+  fabricate risk findings when the constraint cannot be evaluated cleanly
+  against the diff; it says so explicitly.
+
+## What This Benchmark Does Not Prove
+
+- Precision. There were no `at_risk` findings in this dataset, so precision
+  is undefined here.
+- Recall. This sample is not hand-labeled for seeded violations, so miss rate
+  cannot be measured yet.
+- Calibration of `insufficient_context`. Some of the `111` verdicts may be
+  correctly humble and some may be missed risks; without a labeled review set,
+  we cannot separate the two.
+
 ## Supplementary Estimate
 
 This page also keeps the earlier **dry-run budget estimate** as a companion
@@ -57,6 +81,15 @@ Estimate summary:
 - average estimated input tokens: `15,776.1`
 - average estimated cost per run: `$0.0209`
 - p95 estimated cost per run: `$0.0931`
+
+## Scale Endpoints Worth Noticing
+
+- **Lower bound (`sample_06`)**: `1` file, `4` changed lines, `7.5s`,
+  `$0.0079`, `0` `insufficient_context` verdicts. This is the focused-diff
+  case where the judge had enough context to evaluate cleanly and cheaply.
+- **Worst case (`sample_10`)**: `48` files, `9,072` changed lines, `17.6s`,
+  `$0.0806`, `13` `insufficient_context` verdicts. This is the near-refactor
+  case, and it still stayed inside the current PRD latency and cost targets.
 
 ## What This Benchmark Does Not Yet Show
 

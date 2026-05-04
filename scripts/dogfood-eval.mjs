@@ -17,17 +17,17 @@ function main() {
   mkdirSync(resolve(opts.output, ".."), { recursive: true });
 
   const meaningDoc = parseYaml(readFileSync(opts.meaning, "utf-8"));
-  const commits = loadRecentCommits(opts.repo, opts.count);
+  const commitSelection = loadRecentCommitSamples(opts.repo, opts.count);
   const tempDir = mkdtempSync(join(tmpdir(), "meaning-dogfood-"));
 
   try {
-    const samples = commits.map((commit) =>
+    const samples = commitSelection.samples.map((sample) =>
       opts.mode === "live"
-        ? runLiveSample({ ...opts, meaningDoc, commit, tempDir })
-        : runEstimateSample({ ...opts, meaningDoc, commit })
+        ? runLiveSample({ ...opts, meaningDoc, sample, tempDir })
+        : runEstimateSample({ ...opts, meaningDoc, sample })
     );
 
-    const summary = summarize(samples, opts);
+    const summary = summarize(samples, opts, commitSelection);
     const payload = maybeRedactPayload({
       generated_at: new Date().toISOString(),
       mode: opts.mode,
@@ -36,7 +36,10 @@ function main() {
       meaning: opts.meaning,
       provider: opts.provider,
       model: opts.model,
+      requested_sample_count: opts.count,
       sample_count: samples.length,
+      scanned_commits: commitSelection.scannedCommits,
+      skipped_non_reviewable_commits: commitSelection.skippedNonReviewableCommits,
       summary,
       samples,
     }, opts.public);
@@ -139,24 +142,56 @@ function redactSample(sample, index) {
   };
 }
 
-function loadRecentCommits(repo, count) {
-  const out = execSync(`git -C ${shellEscape(repo)} log --format=%H -n ${count}`, {
+function loadRecentCommitSamples(repo, count) {
+  const scanLimit = Math.max(count * 20, 50);
+  const out = execSync(`git -C ${shellEscape(repo)} log --format=%H -n ${scanLimit}`, {
     encoding: "utf-8",
   }).trim();
-  return out ? out.split("\n") : [];
+  const commits = out ? out.split("\n") : [];
+  const samples = [];
+  let skippedNonReviewableCommits = 0;
+
+  for (const commit of commits) {
+    if (samples.length >= count) break;
+    const rawDiff = commitPatch(repo, commit);
+    const files = parseUnifiedDiff(rawDiff);
+    const totalLines = changedLineCount(files);
+
+    if (!files.length || totalLines === 0) {
+      skippedNonReviewableCommits += 1;
+      continue;
+    }
+
+    samples.push({
+      commit,
+      rawDiff,
+      files,
+      totalLines,
+    });
+  }
+
+  return {
+    requestedCount: count,
+    scannedCommits: commits.length,
+    skippedNonReviewableCommits,
+    samples,
+  };
 }
 
-function runEstimateSample({ repo, meaningDoc, model, commit }) {
-  const rawDiff = commitPatch(repo, commit);
-  const files = parseUnifiedDiff(rawDiff);
-  const diff = { base: `${commit}^`, head: commit, files, totalLines: changedLineCount(files) };
+function runEstimateSample({ meaningDoc, model, sample }) {
+  const diff = {
+    base: `${sample.commit}^`,
+    head: sample.commit,
+    files: sample.files,
+    totalLines: sample.totalLines,
+  };
   const reviewedConstraints = prefilter(meaningDoc.constraints, diff)
     .filter((decision) => decision.matched)
     .map((decision) => decision.constraint);
   const budget = checkBudget(model, reviewedConstraints, diff, Number.POSITIVE_INFINITY);
 
   return {
-    commit,
+    commit: sample.commit,
     mode: "estimate",
     files: diff.files.length,
     lines: diff.totalLines,
@@ -167,9 +202,9 @@ function runEstimateSample({ repo, meaningDoc, model, commit }) {
   };
 }
 
-function runLiveSample({ repo, meaning, provider, model, commit, tempDir, noCache }) {
-  const patchPath = join(tempDir, `${commit}.diff`);
-  writeFileSync(patchPath, commitPatch(repo, commit));
+function runLiveSample({ repo, meaning, provider, model, sample, tempDir, noCache }) {
+  const patchPath = join(tempDir, `${sample.commit}.diff`);
+  writeFileSync(patchPath, sample.rawDiff);
 
   const cliPath = resolve("packages/cli/dist/index.js");
   const started = Date.now();
@@ -211,7 +246,7 @@ function runLiveSample({ repo, meaning, provider, model, commit, tempDir, noCach
 
   const parsed = JSON.parse(result.stdout);
   return {
-    commit,
+    commit: sample.commit,
     mode: "live",
     status: result.status,
     duration_ms: durationMs,
@@ -228,13 +263,16 @@ function runLiveSample({ repo, meaning, provider, model, commit, tempDir, noCach
   };
 }
 
-function summarize(samples, opts) {
+function summarize(samples, opts, commitSelection) {
   const numeric = (field) =>
     samples.map((sample) => sample[field]).filter((value) => typeof value === "number");
 
   const summary = {
     mode: opts.mode,
     sample_count: samples.length,
+    requested_sample_count: commitSelection.requestedCount,
+    scanned_commits: commitSelection.scannedCommits,
+    skipped_non_reviewable_commits: commitSelection.skippedNonReviewableCommits,
     files_avg: average(numeric("files")),
     lines_avg: average(numeric("lines")),
   };
@@ -268,6 +306,9 @@ function renderSummary(summary, mode) {
   const lines = [
     `Mode: ${mode}`,
     `Samples: ${summary.sample_count}`,
+    `Requested samples: ${summary.requested_sample_count}`,
+    `Scanned commits: ${summary.scanned_commits}`,
+    `Skipped non-reviewable commits: ${summary.skipped_non_reviewable_commits}`,
     `Average files changed: ${formatNumber(summary.files_avg)}`,
     `Average changed lines: ${formatNumber(summary.lines_avg)}`,
   ];

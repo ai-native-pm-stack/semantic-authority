@@ -18,6 +18,7 @@ import { renderText } from "../review/render/text.js";
 import { renderJson } from "../review/render/json.js";
 import { renderSarif } from "../review/render/sarif.js";
 import type { Constraint, MeaningDoc, ReviewResult, Severity } from "../review/types.js";
+import { compileReviewTargets } from "../review/targets.js";
 
 export interface ReviewOptions {
   surfaceName?: "review" | "drift";
@@ -54,6 +55,9 @@ export async function reviewCommand(args: string[], options: ReviewOptions): Pro
     const doc = parseYaml(meaningContents) as MeaningDoc;
     if (!doc?.constraints || !Array.isArray(doc.constraints)) {
       fail(2, `MEANING.yaml has no constraints array.`);
+    }
+    if (!doc?.goal?.non_goals || !Array.isArray(doc.goal.non_goals)) {
+      fail(2, `MEANING.yaml has no goal.non_goals array.`);
     }
 
     const provider = resolveJudgeProvider(options.model, options.provider);
@@ -99,7 +103,8 @@ export async function reviewCommand(args: string[], options: ReviewOptions): Pro
       console.error(chalk.dim(`[review] diff: ${diff.files.length} files, ${diff.totalLines} +/- lines (base ${diff.base})`));
     }
 
-    const decisions = prefilter(doc.constraints as Constraint[], diff);
+    const reviewTargets = compileReviewTargets(doc) as Constraint[];
+    const decisions = prefilter(reviewTargets, diff);
     const reviewedConstraints = decisions.filter((d) => d.matched).map((d) => d.constraint);
 
     if (options.verbose) {
@@ -218,7 +223,7 @@ export async function reviewCommand(args: string[], options: ReviewOptions): Pro
       diff: { base: diff.base, head: diff.head, files: diff.files.length, lines: diff.totalLines },
       findings: visibleFindings,
       stats: {
-        constraintsTotal: doc.constraints.length,
+        constraintsTotal: reviewTargets.length,
         constraintsReviewed: reviewedConstraints.length,
         calls: cacheHit ? 0 : 1,
         inputTokens: judgeResult.usage.inputTokens,

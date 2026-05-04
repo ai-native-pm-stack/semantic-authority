@@ -138,9 +138,20 @@ jobs:
 
 ## Current Evidence
 
-This repo now includes one real-project **live** benchmark on Orlo using its
-`docs/MEANING.yaml` and a cold, no-cache OpenAI run:
+This repo now includes two benchmark classes:
 
+- a **governed benchmark** on Orlo, using a maintained internal
+  `docs/MEANING.yaml`
+- a **ported benchmark** on the public [`project-blinc/Blinc`](https://github.com/project-blinc/Blinc)
+  repository, using a bootstrapped `MEANING.yaml` derived from public docs
+
+### Governed benchmark: Orlo
+
+Orlo is the stronger evidence anchor because the codebase already has an owned
+meaning artifact and the benchmark measures the review path against that
+declared contract:
+
+- on this sample, the OpenAI path is within the PRD latency and cost targets (`M3`, `M4`)
 - provider / model: `openai` / `gpt-5.4-mini`
 - 10 recent commit diffs
 - successful runs: `10 / 10`
@@ -148,12 +159,19 @@ This repo now includes one real-project **live** benchmark on Orlo using its
 - p95 latency: `17.6s`
 - average review cost: `$0.0240`
 - p95 review cost: `$0.0806`
-- total at-risk findings: `0`
-- total `insufficient_context` verdicts: `111`
+- `0` at-risk findings; `111` `insufficient_context` verdicts, indicating that
+  constraint specificity is the current bottleneck on this codebase, not judge sensitivity
+- worst case in this sample (`sample_10`: `48` files, `9,072` lines) completed
+  in `17.6s` for `$0.0806` — still inside the PRD targets
+- the estimator is calibrated within about `15%` in the conservative direction
+  on this dataset, so teams can use `--mode estimate` to budget review cost
+  without burning API spend
 
-On this sample, the current OpenAI path is within the PRD latency and cost
-targets. The dominant output was `insufficient_context`, which is useful
-evidence that meaning quality itself is now observable during review.
+What the Orlo benchmark proves:
+
+- the pipeline runs end-to-end on a real codebase with real diff shapes
+- latency and cost are inside the current PRD targets
+- `insufficient_context` is a real, load-bearing output rather than a paper concept
 
 Artifacts:
 
@@ -161,7 +179,39 @@ Artifacts:
 - [docs/evidence/orlo-dogfood-live.json](./docs/evidence/orlo-dogfood-live.json)
 - [docs/evidence/orlo-dogfood-estimate.json](./docs/evidence/orlo-dogfood-estimate.json)
 
-What this does not yet show:
+### OSS portability benchmark: Blinc
+
+Blinc is the external-validity check. It did not originally ship with a
+`MEANING.yaml`, so the benchmark uses a ported artifact derived from public
+docs and repo metadata:
+
+- provider / model: `openai` / `gpt-5.4-mini`
+- 10 recent reviewable commit diffs
+- successful runs: `10 / 10`
+- average latency: `2.95s`
+- p95 latency: `3.57s`
+- average review cost: `$0.0041`
+- p95 review cost: `$0.0097`
+- `0` at-risk findings and `0` `insufficient_context` verdicts on this sample
+- the estimator is calibrated within about `4%` in the conservative direction
+  on this dataset
+- worst case in this sample (`sample_10`: `5` files, `615` lines) completed in
+  `3.07s` for `$0.0097`
+
+What the Blinc benchmark proves:
+
+- the review pipeline transfers to a public repo that did not start
+  AI-native
+- a bootstrapped `MEANING.yaml` can still support cheap, successful live runs
+- the estimate mode remains a practical budgeting surface on a second codebase
+
+Artifacts:
+
+- [docs/evidence/blinc/README.md](./docs/evidence/blinc/README.md)
+- [docs/evidence/blinc/blinc-dogfood-live.json](./docs/evidence/blinc/blinc-dogfood-live.json)
+- [docs/evidence/blinc/blinc-dogfood-estimate.json](./docs/evidence/blinc/blinc-dogfood-estimate.json)
+
+What these benchmarks do not yet show:
 
 - labeled precision / recall
 - one published SARIF artifact or screenshot from a real PR
@@ -228,6 +278,7 @@ Full worked example: [examples/invoice-processor/MEANING.yaml](./examples/invoic
 | [PRD_MEANING_REVIEW.md](./PRD_MEANING_REVIEW.md) | Maintainers, contributors | Full PRD + ERD for the `meaning review` enforcement build |
 | [examples/invoice-processor/SCENARIOS.md](./examples/invoice-processor/SCENARIOS.md) | Anyone evaluating | Three runnable review scenarios |
 | [docs/evidence/ORLO_DOGFOOD.md](./docs/evidence/ORLO_DOGFOOD.md) | Evaluators, maintainers | Real-project dogfood notes and cost-estimate artifact |
+| [docs/evidence/blinc/README.md](./docs/evidence/blinc/README.md) | Evaluators, maintainers | Public OSS portability benchmark with bootstrapped meaning |
 
 ---
 

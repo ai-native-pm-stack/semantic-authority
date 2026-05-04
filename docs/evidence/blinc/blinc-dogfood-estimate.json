@@ -1,0 +1,127 @@
+{
+  "generated_at": "2026-05-03T23:00:53.370Z",
+  "mode": "estimate",
+  "project": "Blinc",
+  "provider": "openai",
+  "model": "gpt-5.4-mini",
+  "requested_sample_count": 10,
+  "sample_count": 10,
+  "scanned_commits": 200,
+  "skipped_non_reviewable_commits": 2,
+  "summary": {
+    "mode": "estimate",
+    "sample_count": 10,
+    "requested_sample_count": 10,
+    "scanned_commits": 200,
+    "skipped_non_reviewable_commits": 2,
+    "files_avg": 1.8,
+    "lines_avg": 124.5,
+    "constraints_reviewed_avg": 5.1,
+    "estimated_cost_usd_avg": 0.0042499999999999994,
+    "estimated_cost_usd_p95": 0.0099,
+    "estimated_input_tokens_avg": 3030.5
+  },
+  "visibility": "public-redacted",
+  "samples": [
+    {
+      "sample_id": "sample_01",
+      "mode": "estimate",
+      "files": 2,
+      "lines": 146,
+      "constraints_reviewed": 5,
+      "estimated_input_tokens": 3053,
+      "estimated_output_tokens": 400,
+      "estimated_cost_usd": 0.0041
+    },
+    {
+      "sample_id": "sample_02",
+      "mode": "estimate",
+      "files": 1,
+      "lines": 214,
+      "constraints_reviewed": 6,
+      "estimated_input_tokens": 3413,
+      "estimated_output_tokens": 480,
+      "estimated_cost_usd": 0.0047
+    },
+    {
+      "sample_id": "sample_03",
+      "mode": "estimate",
+      "files": 1,
+      "lines": 66,
+      "constraints_reviewed": 5,
+      "estimated_input_tokens": 2215,
+      "estimated_output_tokens": 400,
+      "estimated_cost_usd": 0.0035
+    },
+    {
+      "sample_id": "sample_04",
+      "mode": "estimate",
+      "files": 1,
+      "lines": 85,
+      "constraints_reviewed": 6,
+      "estimated_input_tokens": 2784,
+      "estimated_output_tokens": 480,
+      "estimated_cost_usd": 0.0042
+    },
+    {
+      "sample_id": "sample_05",
+      "mode": "estimate",
+      "files": 1,
+      "lines": 19,
+      "constraints_reviewed": 4,
+      "estimated_input_tokens": 1685,
+      "estimated_output_tokens": 400,
+      "estimated_cost_usd": 0.0031
+    },
+    {
+      "sample_id": "sample_06",
+      "mode": "estimate",
+      "files": 1,
+      "lines": 15,
+      "constraints_reviewed": 4,
+      "estimated_input_tokens": 1532,
+      "estimated_output_tokens": 400,
+      "estimated_cost_usd": 0.0029
+    },
+    {
+      "sample_id": "sample_07",
+      "mode": "estimate",
+      "files": 1,
+      "lines": 36,
+      "constraints_reviewed": 5,
+      "estimated_input_tokens": 1723,
+      "estimated_output_tokens": 400,
+      "estimated_cost_usd": 0.0031
+    },
+    {
+      "sample_id": "sample_08",
+      "mode": "estimate",
+      "files": 1,
+      "lines": 22,
+      "constraints_reviewed": 6,
+      "estimated_input_tokens": 1883,
+      "estimated_output_tokens": 480,
+      "estimated_cost_usd": 0.0036
+    },
+    {
+      "sample_id": "sample_09",
+      "mode": "estimate",
+      "files": 4,
+      "lines": 27,
+      "constraints_reviewed": 3,
+      "estimated_input_tokens": 2164,
+      "estimated_output_tokens": 400,
+      "estimated_cost_usd": 0.0034
+    },
+    {
+      "sample_id": "sample_10",
+      "mode": "estimate",
+      "files": 5,
+      "lines": 615,
+      "constraints_reviewed": 7,
+      "estimated_input_tokens": 9853,
+      "estimated_output_tokens": 560,
+      "estimated_cost_usd": 0.0099
+    }
+  ]
+}

@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import type { Diff, JudgeFindingRaw, JudgeProvider, JudgeUsage } from "./types.js";
+import { REVIEW_PROTOCOL_VERSION } from "./judge.js";
 
 const CACHE_VERSION = "1";
 
@@ -10,6 +11,7 @@ export interface ReviewCacheKey {
   model: string;
   diffHash: string;
   meaningHash: string;
+  protocolHash: string;
 }
 
 export interface ReviewCacheEntry {
@@ -18,6 +20,7 @@ export interface ReviewCacheEntry {
   model: string;
   diffHash: string;
   meaningHash: string;
+  protocolHash: string;
   createdAt: string;
   usage: JudgeUsage;
   findings: JudgeFindingRaw[];
@@ -38,6 +41,7 @@ export function createReviewCacheKey(input: {
     model: input.model,
     diffHash: sha256(input.diff.files.map((file) => file.rawPatch).join("\n")),
     meaningHash: sha256(input.meaningContents),
+    protocolHash: sha256(REVIEW_PROTOCOL_VERSION),
   };
 }
 
@@ -53,6 +57,7 @@ export function readReviewCache(cacheDir: string, key: ReviewCacheKey): ReviewCa
       parsed.model !== key.model ||
       parsed.diffHash !== key.diffHash ||
       parsed.meaningHash !== key.meaningHash ||
+      parsed.protocolHash !== key.protocolHash ||
       !Array.isArray(parsed.findings)
     ) {
       return null;
@@ -79,6 +84,7 @@ export function writeReviewCache(
         model: key.model,
         diffHash: key.diffHash,
         meaningHash: key.meaningHash,
+        protocolHash: key.protocolHash,
         createdAt: new Date().toISOString(),
         usage: entry.usage,
         findings: entry.findings,
@@ -91,7 +97,7 @@ export function writeReviewCache(
 }
 
 export function formatReviewCacheKey(key: ReviewCacheKey): string {
-  return `${key.provider}:${key.model}:${key.meaningHash}:${key.diffHash}`;
+  return `${key.provider}:${key.model}:${key.protocolHash}:${key.meaningHash}:${key.diffHash}`;
 }
 
 function cacheFilePath(cacheDir: string, key: ReviewCacheKey): string {

@@ -164,7 +164,7 @@ See [examples/invoice-processor/AGENT_EXAMPLE.md](../examples/invoice-processor/
 Scope today:
 
 - Constraints are first-class drift / review targets today.
-- Non-goals guide humans and agents, but they are **not yet compiled into first-class review rules** by `meaning review`.
+- Non-goals are compiled into synthetic **warn-level** review targets so scope creep can be surfaced in review without pretending every non-goal is a hard block by default.
 - `insufficient_context` is the signal that a constraint is too vague to review reliably and should be sharpened.
 
 ---

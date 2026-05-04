@@ -278,6 +278,8 @@ export function changedLineNumbers(file: FileDiff): number[] {
       if (l.startsWith("+") && !l.startsWith("+++")) {
         numbers.push(n);
         n++;
+      } else if (l.startsWith("-") && !l.startsWith("---")) {
+        numbers.push(Math.max(n, h.newStart));
       } else if (l.startsWith(" ")) {
         n++;
       }
@@ -293,12 +295,7 @@ export function findDiffFile(diff: Diff, path: string): FileDiff | undefined {
 export function lineTouchesDiffHunk(file: FileDiff, line: number): boolean {
   if (!Number.isInteger(line) || line < 1) return false;
 
-  return file.hunks.some((hunk) => {
-    const start = hunk.newStart;
-    const span = Math.max(hunk.newLines, 1);
-    const end = start + span - 1;
-    return line >= start && line <= end;
-  });
+  return changedLineNumbers(file).includes(line);
 }
 
 function hydrateFileContext(

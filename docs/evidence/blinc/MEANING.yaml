@@ -1,0 +1,168 @@
+# Generated from: project-blinc/Blinc public repository
+# Constraints: 7 (2 block, 4 warn, 1 observe)
+# Sources: 5 declared, 2 assumed
+# Clarifications needed: 4
+# Status: DRAFT — requires maintainer review before activation
+
+system: blinc
+version: 1.0.0
+status: draft
+owner: blinc-maintainers
+last_reviewed: 2026-05-03
+
+goal:
+  primary: >
+    Enable Rust developers to build production-quality cross-platform user
+    interfaces from a single Rust codebase with GPU-accelerated rendering and a
+    unified framework API.
+  success_criteria:
+    - "The same application UI logic can run across desktop, mobile, and preview web runners from one Rust codebase."
+    - "Core examples and demos remain runnable as the canonical reference for documented framework patterns."
+  non_goals:
+    - "Does not wrap native platform widget toolkits as the primary rendering path."
+    - "Does not behave like a DOM or HTML/CSS browser framework."
+    - "Does not promise feature-complete web parity today; the web target is preview / Tier 2."
+    - "Does not yet ship Zyntax DSL, hot reload, visual inspector, or LSP tooling as stable framework features."
+    - "Does not yet provide full accessibility and screen-reader parity across all targets."
+    - "Does not expose browser-sandboxed platform features such as system tray, notifications, or global hotkeys on the web target."
+
+constraints:
+  - id: C-ARCH-SINGLE-CODEBASE-001
+    description: "Core application UI must remain expressible from a single Rust codebase across the supported Blinc platform runners."
+    category: architectural
+    enforcement: block
+    owner: blinc-maintainers
+    rationale: "The single-codebase promise is the framework's core value proposition."
+    source: declared
+    confidence: high
+    verification_notes: "Review changes to runners, examples, and public docs for new platform-specific divergence."
+    path_globs:
+      - "README.md"
+      - "crates/blinc_app/**"
+      - "crates/blinc_platform/**"
+      - "extensions/blinc_platform_*/*"
+      - "examples/**"
+
+  - id: C-COMPLIANCE-ROYALTY-FREE-002
+    description: "Desktop media support must use royalty-free codecs only and must not introduce ffmpeg or patent-encumbered desktop codecs."
+    category: business
+    enforcement: block
+    owner: blinc-media-maintainers
+    rationale: "The roadmap explicitly commits to a royalty-free desktop codec and licensing posture."
+    source: declared
+    confidence: high
+    verification_notes: "Review media dependency changes and codec integration paths for licensing regressions."
+    path_globs:
+      - "ROADMAP.md"
+      - "docs/book/src/widgets/audio-video.md"
+      - "crates/blinc_media/**"
+      - "Cargo.toml"
+
+  - id: C-ARCH-WGPU-BASELINE-003
+    description: "The workspace must not move off the vetted wgpu 26.0.1 baseline without cross-device validation against the documented PowerVR and Mali regressions."
+    category: architectural
+    enforcement: warn
+    owner: blinc-gpu-maintainers
+    rationale: "The workspace manifest records known stability reasons for the current wgpu pin."
+    source: declared
+    confidence: high
+    verification_notes: "Review dependency changes in the workspace manifest and GPU crates; require validation notes when bumping wgpu."
+    path_globs:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "crates/blinc_gpu/**"
+
+  - id: C-REL-WEB-TIER2-004
+    description: "The web target must continue to be represented as preview / Tier 2 until the documented gaps and browser-support caveats are closed."
+    category: operational
+    enforcement: warn
+    owner: blinc-platform-web-maintainers
+    rationale: "The project explicitly scopes the web target as preview with deliberate functional gaps."
+    source: declared
+    confidence: high
+    verification_notes: "Review web docs and public support tables for overstated parity claims."
+    path_globs:
+      - "README.md"
+      - "docs/web.md"
+      - "extensions/blinc_platform_web/**"
+      - "docs/book/src/web/**"
+
+  - id: C-REL-HEADLESS-TESTING-005
+    description: "Headless rendering and visual regression testing support must remain available for automated screenshot-based validation."
+    category: operational
+    enforcement: warn
+    owner: blinc-test-suite-maintainers
+    rationale: "The framework documents headless rendering and a dedicated visual test suite as part of its quality story."
+    source: declared
+    confidence: medium
+    verification_notes: "Review changes to blinc_app headless APIs and blinc_test_suite for regressions in screenshot-based testing support."
+    path_globs:
+      - "crates/blinc_app/**"
+      - "crates/blinc_test_suite/**"
+      - ".github/workflows/ci.yml"
+
+  - id: C-OPS-RUNNABLE-EXAMPLES-006
+    description: "Documented examples must remain runnable and continue serving as the canonical reference for documented framework patterns."
+    category: operational
+    enforcement: warn
+    owner: blinc-maintainers
+    rationale: "The repo and web docs rely on examples as the primary reference surface for users."
+    source: declared
+    confidence: medium
+    verification_notes: "Review example crate and docs changes for broken example paths or non-runnable documented flows."
+    path_globs:
+      - "README.md"
+      - "docs/**"
+      - "examples/**"
+      - "tools/build-web-examples/**"
+
+  - id: C-OPS-DOCS-PARITY-007
+    description: "Public installation and platform-support docs should match the shipped workspace version, Rust floor, and browser support matrix."
+    category: operational
+    enforcement: observe
+    owner: blinc-maintainers
+    rationale: "Documentation drift directly undermines onboarding and support expectations for a framework."
+    source: assumed
+    confidence: medium
+    verification_notes: "Review user-facing docs alongside manifest and platform docs when release metadata or support tables change."
+    path_globs:
+      - "README.md"
+      - "Cargo.toml"
+      - "docs/book/src/getting-started/installation.md"
+      - "docs/web.md"
+
+trade_offs:
+  chosen:
+    approach: "A GPU-rendered, Rust-native cross-platform framework built on wgpu with a shared application and layout model."
+    rationale: "This preserves a unified developer experience and a single-codebase model across desktop, mobile, and preview web targets."
+  rejected:
+    - alternative: "Per-platform native widget toolkits or wrappers"
+      reason: "Would fragment the developer experience and weaken the single-codebase promise."
+      revisit_condition: "Revisit if major platform targets cannot reach acceptable quality or parity through the shared runtime."
+    - alternative: "A desktop media stack built on ffmpeg or other patent-encumbered codecs"
+      reason: "The project explicitly prefers a royalty-free licensing posture for desktop media."
+      revisit_condition: "Revisit only if the project's licensing and distribution posture changes materially."
+  known_risks:
+    - risk: "Web preview gaps and browser-support contradictions can create onboarding confusion."
+      mitigation: "Keep support tables aligned and continue treating web as preview until the documented gaps close."
+    - risk: "Rapid roadmap scope expansion can outpace documentation accuracy."
+      mitigation: "Treat doc parity and runnable examples as review targets, not just marketing material."
+
+drift_policy:
+  review_cadence: monthly
+  enforcement_rules:
+    block: "Violation must not merge without remediation or an explicit meaning update."
+    warn: "Acknowledgement required with owner and revisit condition."
+    observe: "Logged as drift or documentation debt and reviewed periodically."
+
+provenance:
+  source_summary: "Derived from Blinc's public README, roadmap, web-target docs, book introduction and installation guide, workspace manifest, agent-facing skills reference, and CI workflow."
+  assumptions:
+    - "The owner role was inferred as the Blinc maintainers because no explicit semantic-owner artifact exists."
+    - "Documentation parity was modeled as an observe-level constraint because the repo currently shows support-matrix and install-version drift."
+    - "Headless rendering plus screenshot testing was treated as part of the product contract because both are documented as first-class surfaces."
+  clarifications_needed:
+    - "Which browser-support table is authoritative: the root README or docs/web.md."
+    - "Which minimum Rust version and crate version should public installation docs advertise."
+    - "Whether web preview gaps are current release commitments or partially outdated docs."
+    - "Who would formally own a canonical Blinc MEANING.yaml if the project adopted one upstream."

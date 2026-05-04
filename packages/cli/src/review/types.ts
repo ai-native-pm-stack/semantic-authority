@@ -9,8 +9,8 @@ export interface Constraint {
   enforcement: Severity;
   owner: string;
   rationale: string;
-  source: string;
-  confidence: Confidence;
+  source?: string;
+  confidence?: Confidence;
   verification_notes?: string;
   path_globs?: string[];
 }

@@ -27,7 +27,9 @@ export function aggregate(input: AggregateInput): AggregateResult {
   const dropped: Array<{ raw: JudgeFindingRaw; reason: string }> = [];
   const seen = new Set<string>();
 
-  const diffText = input.diff.files.map((f) => f.rawPatch).join("\n");
+  const changedDiffText = input.diff.files
+    .map((f) => extractChangedDiffText(f.rawPatch))
+    .join("\n");
 
   for (const raw of input.rawFindings) {
     const constraint = byId.get(raw.constraint_id);
@@ -50,8 +52,8 @@ export function aggregate(input: AggregateInput): AggregateResult {
     }
 
     // at_risk — require evidence quote that appears in the diff
-    if (!raw.evidence_quote || !quoteAppearsInDiff(raw.evidence_quote, diffText)) {
-      dropped.push({ raw, reason: "evidence_quote not found in diff (likely hallucination)" });
+    if (!raw.evidence_quote || !quoteAppearsInDiff(raw.evidence_quote, changedDiffText)) {
+      dropped.push({ raw, reason: "evidence_quote not found in changed diff lines (likely hallucination)" });
       continue;
     }
 
@@ -67,7 +69,7 @@ export function aggregate(input: AggregateInput): AggregateResult {
     }
 
     if (!lineTouchesDiffHunk(diffFile, raw.line)) {
-      dropped.push({ raw, reason: "line not present in diff hunk" });
+      dropped.push({ raw, reason: "line not present in changed diff region" });
       continue;
     }
 
@@ -102,21 +104,28 @@ export function aggregate(input: AggregateInput): AggregateResult {
 }
 
 export function quoteAppearsInDiff(quote: string, diffText: string): boolean {
-  // Normalize both: strip leading +/-/space, collapse whitespace.
+  // Normalize both: strip leading +/- only, collapse whitespace.
   const normalize = (s: string) =>
     s
       .split("\n")
-      .map((l) => l.replace(/^[+\- ]/, "").trim())
+      .map((l) => l.replace(/^[+\-]/, "").trim())
       .join(" ")
       .replace(/\s+/g, " ")
       .trim();
   const needle = normalize(quote);
   if (needle.length < 5) return false;
-  const haystack = normalize(diffText);
-  if (haystack.includes(needle)) return true;
-  // Try a looser substring match on a subset
-  const trimmed = needle.length > 80 ? needle.slice(0, 80) : needle;
-  return haystack.includes(trimmed);
+  const haystack = normalize(extractChangedDiffText(diffText));
+  return haystack.includes(needle);
+}
+
+function extractChangedDiffText(rawPatch: string): string {
+  return rawPatch
+    .split("\n")
+    .filter((line) => {
+      if (line.startsWith("+++ ") || line.startsWith("--- ")) return false;
+      return line.startsWith("+") || line.startsWith("-");
+    })
+    .join("\n");
 }
 
 export function exitCodeFor(findings: Finding[], failOn: "block" | "warn" | "observe"): number {

@@ -92,7 +92,7 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
 
       // Check: low-confidence constraints should not be block-level
       for (const c of constraints) {
-        if (c.confidence === "low" && c.enforcement === "block") {
+        if (c.confidence && c.confidence === "low" && c.enforcement === "block") {
           result.warnings.push(
             `${c.id}: Low-confidence constraint is block-level. Consider warn until confidence increases.`
           );
@@ -101,7 +101,7 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
 
       // Check: assumed constraints with block enforcement
       for (const c of constraints) {
-        if (c.source === "assumed" && c.enforcement === "block") {
+        if (c.source && c.source === "assumed" && c.enforcement === "block") {
           result.warnings.push(
             `${c.id}: Assumed (not declared) constraint is block-level. Verify with stakeholder.`
           );
