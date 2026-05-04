@@ -6,6 +6,8 @@ CLAUDE.md tells agents *how to work*. **MEANING.yaml tells them *what the work m
 
 Semantic Authority is the framework. `MEANING.yaml` is the canonical artifact. Humans author and ratify it; humans, agents, and CI consume it in different ways.
 
+Semantic Authority makes a product team's goals, non-goals, and constraints machine-enforceable in CI — the PM office authors the boundaries, an LLM judge flags risk, and deterministic checks decide what blocks a merge.
+
 This is the **meaning layer** of the AI Native PM Stack:
 
 - **PMs / product leaders** make intent explicit
