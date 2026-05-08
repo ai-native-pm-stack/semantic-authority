@@ -1,0 +1,304 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "meaning-review",
+          "informationUri": "https://github.com/ai-native-pm-stack/semantic-authority",
+          "version": "0.2.0-alpha",
+          "rules": [
+            {
+              "id": "C-ARCH-SINGLE-CODEBASE-001",
+              "name": "C-ARCH-SINGLE-CODEBASE-001",
+              "shortDescription": {
+                "text": "Core application UI must remain expressible from a single Rust codebase across the supported Blinc platform runners."
+              },
+              "fullDescription": {
+                "text": "Core application UI must remain expressible from a single Rust codebase across the supported Blinc platform runners."
+              },
+              "help": {
+                "text": "Rationale: The single-codebase promise is the framework's core value proposition."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "category": "architectural",
+                "enforcement": "block",
+                "owner": "blinc-maintainers"
+              }
+            },
+            {
+              "id": "C-COMPLIANCE-ROYALTY-FREE-002",
+              "name": "C-COMPLIANCE-ROYALTY-FREE-002",
+              "shortDescription": {
+                "text": "Desktop media support must use royalty-free codecs only and must not introduce ffmpeg or patent-encumbered desktop code…"
+              },
+              "fullDescription": {
+                "text": "Desktop media support must use royalty-free codecs only and must not introduce ffmpeg or patent-encumbered desktop codecs."
+              },
+              "help": {
+                "text": "Rationale: The roadmap explicitly commits to a royalty-free desktop codec and licensing posture."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "category": "business",
+                "enforcement": "block",
+                "owner": "blinc-media-maintainers"
+              }
+            },
+            {
+              "id": "C-ARCH-WGPU-BASELINE-003",
+              "name": "C-ARCH-WGPU-BASELINE-003",
+              "shortDescription": {
+                "text": "The workspace must not move off the vetted wgpu 26.0.1 baseline without cross-device validation against the documented …"
+              },
+              "fullDescription": {
+                "text": "The workspace must not move off the vetted wgpu 26.0.1 baseline without cross-device validation against the documented PowerVR and Mali regressions."
+              },
+              "help": {
+                "text": "Rationale: The workspace manifest records known stability reasons for the current wgpu pin."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "category": "architectural",
+                "enforcement": "warn",
+                "owner": "blinc-gpu-maintainers"
+              }
+            },
+            {
+              "id": "C-REL-WEB-TIER2-004",
+              "name": "C-REL-WEB-TIER2-004",
+              "shortDescription": {
+                "text": "The web target must continue to be represented as preview / Tier 2 until the documented gaps and browser-support caveat…"
+              },
+              "fullDescription": {
+                "text": "The web target must continue to be represented as preview / Tier 2 until the documented gaps and browser-support caveats are closed."
+              },
+              "help": {
+                "text": "Rationale: The project explicitly scopes the web target as preview with deliberate functional gaps."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "category": "operational",
+                "enforcement": "warn",
+                "owner": "blinc-platform-web-maintainers"
+              }
+            },
+            {
+              "id": "C-REL-HEADLESS-TESTING-005",
+              "name": "C-REL-HEADLESS-TESTING-005",
+              "shortDescription": {
+                "text": "Headless rendering and visual regression testing support must remain available for automated screenshot-based validatio…"
+              },
+              "fullDescription": {
+                "text": "Headless rendering and visual regression testing support must remain available for automated screenshot-based validation."
+              },
+              "help": {
+                "text": "Rationale: The framework documents headless rendering and a dedicated visual test suite as part of its quality story."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "category": "operational",
+                "enforcement": "warn",
+                "owner": "blinc-test-suite-maintainers"
+              }
+            },
+            {
+              "id": "C-OPS-RUNNABLE-EXAMPLES-006",
+              "name": "C-OPS-RUNNABLE-EXAMPLES-006",
+              "shortDescription": {
+                "text": "Documented examples must remain runnable and continue serving as the canonical reference for documented framework patte…"
+              },
+              "fullDescription": {
+                "text": "Documented examples must remain runnable and continue serving as the canonical reference for documented framework patterns."
+              },
+              "help": {
+                "text": "Rationale: The repo and web docs rely on examples as the primary reference surface for users."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "category": "operational",
+                "enforcement": "warn",
+                "owner": "blinc-maintainers"
+              }
+            },
+            {
+              "id": "C-OPS-DOCS-PARITY-007",
+              "name": "C-OPS-DOCS-PARITY-007",
+              "shortDescription": {
+                "text": "Public installation and platform-support docs should match the shipped workspace version, Rust floor, and browser suppo…"
+              },
+              "fullDescription": {
+                "text": "Public installation and platform-support docs should match the shipped workspace version, Rust floor, and browser support matrix."
+              },
+              "help": {
+                "text": "Rationale: Documentation drift directly undermines onboarding and support expectations for a framework."
+              },
+              "defaultConfiguration": {
+                "level": "note"
+              },
+              "properties": {
+                "category": "operational",
+                "enforcement": "observe",
+                "owner": "blinc-maintainers"
+              }
+            },
+            {
+              "id": "NG-SCOPE-001",
+              "name": "NG-SCOPE-001",
+              "shortDescription": {
+                "text": "Non-goal: Does not wrap native platform widget toolkits as the primary rendering path."
+              },
+              "fullDescription": {
+                "text": "Non-goal: Does not wrap native platform widget toolkits as the primary rendering path."
+              },
+              "help": {
+                "text": "Rationale: This capability is explicitly out of scope. Flag diffs that introduce, normalize, or document it without a deliberate meaning update."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "category": "scope",
+                "enforcement": "warn",
+                "owner": "blinc-maintainers"
+              }
+            },
+            {
+              "id": "NG-SCOPE-002",
+              "name": "NG-SCOPE-002",
+              "shortDescription": {
+                "text": "Non-goal: Does not behave like a DOM or HTML/CSS browser framework."
+              },
+              "fullDescription": {
+                "text": "Non-goal: Does not behave like a DOM or HTML/CSS browser framework."
+              },
+              "help": {
+                "text": "Rationale: This capability is explicitly out of scope. Flag diffs that introduce, normalize, or document it without a deliberate meaning update."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "category": "scope",
+                "enforcement": "warn",
+                "owner": "blinc-maintainers"
+              }
+            },
+            {
+              "id": "NG-SCOPE-003",
+              "name": "NG-SCOPE-003",
+              "shortDescription": {
+                "text": "Non-goal: Does not promise feature-complete web parity today; the web target is preview / Tier 2."
+              },
+              "fullDescription": {
+                "text": "Non-goal: Does not promise feature-complete web parity today; the web target is preview / Tier 2."
+              },
+              "help": {
+                "text": "Rationale: This capability is explicitly out of scope. Flag diffs that introduce, normalize, or document it without a deliberate meaning update."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "category": "scope",
+                "enforcement": "warn",
+                "owner": "blinc-maintainers"
+              }
+            },
+            {
+              "id": "NG-SCOPE-004",
+              "name": "NG-SCOPE-004",
+              "shortDescription": {
+                "text": "Non-goal: Does not yet ship Zyntax DSL, hot reload, visual inspector, or LSP tooling as stable framework features."
+              },
+              "fullDescription": {
+                "text": "Non-goal: Does not yet ship Zyntax DSL, hot reload, visual inspector, or LSP tooling as stable framework features."
+              },
+              "help": {
+                "text": "Rationale: This capability is explicitly out of scope. Flag diffs that introduce, normalize, or document it without a deliberate meaning update."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "category": "scope",
+                "enforcement": "warn",
+                "owner": "blinc-maintainers"
+              }
+            },
+            {
+              "id": "NG-SCOPE-005",
+              "name": "NG-SCOPE-005",
+              "shortDescription": {
+                "text": "Non-goal: Does not yet provide full accessibility and screen-reader parity across all targets."
+              },
+              "fullDescription": {
+                "text": "Non-goal: Does not yet provide full accessibility and screen-reader parity across all targets."
+              },
+              "help": {
+                "text": "Rationale: This capability is explicitly out of scope. Flag diffs that introduce, normalize, or document it without a deliberate meaning update."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "category": "scope",
+                "enforcement": "warn",
+                "owner": "blinc-maintainers"
+              }
+            },
+            {
+              "id": "NG-SCOPE-006",
+              "name": "NG-SCOPE-006",
+              "shortDescription": {
+                "text": "Non-goal: Does not expose browser-sandboxed platform features such as system tray, notifications, or global hotkeys on …"
+              },
+              "fullDescription": {
+                "text": "Non-goal: Does not expose browser-sandboxed platform features such as system tray, notifications, or global hotkeys on the web target."
+              },
+              "help": {
+                "text": "Rationale: This capability is explicitly out of scope. Flag diffs that introduce, normalize, or document it without a deliberate meaning update."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "category": "scope",
+                "enforcement": "warn",
+                "owner": "blinc-maintainers"
+              }
+            }
+          ]
+        }
+      },
+      "results": [],
+      "invocations": [
+        {
+          "executionSuccessful": true,
+          "properties": {
+            "meaning_file": "/Users/samsonaligba/Projects/meaning/docs/evidence/blinc/MEANING.yaml",
+            "system": "blinc",
+            "cost_usd": 0.008913750000000002,
+            "cache_hit": false,
+            "judge_provider": "openai",
+            "judge_model": "gpt-5.4-mini"
+          }
+        }
+      ]
+    }
+  ]
+}

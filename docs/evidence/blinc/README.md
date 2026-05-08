@@ -40,6 +40,8 @@ Artifacts:
 
 - [blinc-dogfood-live.json](./blinc-dogfood-live.json)
 - [blinc-dogfood-estimate.json](./blinc-dogfood-estimate.json)
+- [blinc-labeled-eval.json](./blinc-labeled-eval.json)
+- [labeled seeded eval](./labeled/README.md)
 
 ## Live Benchmark Summary
 
@@ -71,13 +73,27 @@ and cost targets (`M3`, `M4`).
 
 - Governance legitimacy. This is a reconstructed artifact, not one owned by
   the Blinc maintainers.
-- Precision. There were no at-risk findings in this dataset, so precision is
-  undefined here.
-- Recall. This sample is not hand-labeled for seeded violations, so miss rate
-  cannot be measured yet.
+- Broad precision / recall on organic PR traffic. A small seeded labeled eval
+  now exists, but it is not the same thing as measured behavior on real PRs.
 - Judge calibration on borderline constraints. `0` `insufficient_context`
   verdicts here means the bootstrapped meaning artifact was specific enough for
   these diffs, not that the judge is fully validated.
+
+## Seeded Labeled Eval
+
+A companion seeded eval now exists for the same bootstrapped Blinc meaning
+artifact:
+
+- [labeled/README.md](./labeled/README.md)
+
+Current result on `gpt-5.4-mini`:
+
+- `0 / 4` seeded positive cases flagged as at-risk
+- `1 / 1` negative control stayed clean
+
+That is a useful, honest signal: the current Blinc portability path is
+cheap and operationally reliable, but still too conservative on this small set
+of explicit semantic regressions.
 
 ## Scale Endpoints Worth Noticing
 

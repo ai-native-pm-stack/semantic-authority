@@ -1,0 +1,13 @@
+diff --git a/README.md b/README.md
+index 3c4d698..42af190 100644
+--- a/README.md
++++ b/README.md
+@@ -88,7 +88,7 @@ See [ROADMAP.md](ROADMAP.md) for detailed milestones. Current focus:
+ 
+ 1. Missing widgets (date/time/color picker, data grid)
+ 2. Zyntax DSL — `.blinc` file syntax compiled to Rust
+-3. Accessibility (screen reader, keyboard navigation)
++3. Accessibility is complete across all targets, including full screen reader parity
+ 4. Developer tooling (hot reload, visual inspector)
+ 
+ ## License

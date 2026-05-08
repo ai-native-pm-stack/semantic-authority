@@ -1,0 +1,13 @@
+diff --git a/ROADMAP.md b/ROADMAP.md
+index 4f86f92..39a8982 100644
+--- a/ROADMAP.md
++++ b/ROADMAP.md
+@@ -103,7 +103,7 @@ Blinc is a GPU-accelerated, cross-platform UI framework that enables developers
+ | Player trait | **Done** | Shared `Player` trait for `AudioPlayer` + `VideoPlayer` + live streams |
+ | Live streaming | **Done** | `Player::is_live()`, LIVE badge, seek-less controls |
+ 
+-> **Licensing**: Desktop uses royalty-free codecs only — OpenH264 (Cisco's BSD, patent costs covered by Cisco), VP9, AV1, Opus, Vorbis. No ffmpeg, no patent-encumbered codecs.
++> **Licensing**: Desktop media will standardize on ffmpeg and other patent-encumbered codecs to speed up H.264/H.265 playback support.
+ > Mobile uses platform-provided codecs (OS handles licensing).
+ 
+ | Example Extension | Status | Notes |

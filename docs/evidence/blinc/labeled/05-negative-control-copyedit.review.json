@@ -1,0 +1,33 @@
+{
+  "status": 0,
+  "stdout": "{\n  \"version\": \"1\",\n  \"meaning_file\": \"/Users/samsonaligba/Projects/meaning/docs/evidence/blinc/MEANING.yaml\",\n  \"system\": \"blinc\",\n  \"meaning_version\": \"1.0.0\",\n  \"judge\": {\n    \"provider\": \"openai\",\n    \"model\": \"gpt-5.4-mini\",\n    \"cache_hit\": false,\n    \"cache_key\": \"openai:gpt-5.4-mini:5cf51a962fbbd767215315b0ffc2127d9d411364096acb62f974be0e0ee5b5a6:a722cecbaa710fd1f1426461cd212827f4e9d47180239379fbd9828bebb39d9a:3d95b289a094dd028268acad8191854a7f13fe34616db215634d29d69def4291\"\n  },\n  \"diff\": {\n    \"base\": \"/Users/samsonaligba/Projects/meaning/docs/evidence/blinc/labeled/05-negative-control-copyedit.diff\",\n    \"head\": \"patch\",\n    \"files\": 1,\n    \"lines\": 2\n  },\n  \"findings\": [],\n  \"insufficient_context\": [],\n  \"stats\": {\n    \"constraints_total\": 13,\n    \"constraints_reviewed\": 11,\n    \"calls\": 1,\n    \"input_tokens\": 5406,\n    \"output_tokens\": 610,\n    \"cost_usd\": 0.0068\n  }\n}",
+  "stderr": "",
+  "parsed": {
+    "version": "1",
+    "meaning_file": "/Users/samsonaligba/Projects/meaning/docs/evidence/blinc/MEANING.yaml",
+    "system": "blinc",
+    "meaning_version": "1.0.0",
+    "judge": {
+      "provider": "openai",
+      "model": "gpt-5.4-mini",
+      "cache_hit": false,
+      "cache_key": "openai:gpt-5.4-mini:5cf51a962fbbd767215315b0ffc2127d9d411364096acb62f974be0e0ee5b5a6:a722cecbaa710fd1f1426461cd212827f4e9d47180239379fbd9828bebb39d9a:3d95b289a094dd028268acad8191854a7f13fe34616db215634d29d69def4291"
+    },
+    "diff": {
+      "base": "/Users/samsonaligba/Projects/meaning/docs/evidence/blinc/labeled/05-negative-control-copyedit.diff",
+      "head": "patch",
+      "files": 1,
+      "lines": 2
+    },
+    "findings": [],
+    "insufficient_context": [],
+    "stats": {
+      "constraints_total": 13,
+      "constraints_reviewed": 11,
+      "calls": 1,
+      "input_tokens": 5406,
+      "output_tokens": 610,
+      "cost_usd": 0.0068
+    }
+  }
+}

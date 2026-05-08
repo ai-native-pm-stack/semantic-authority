@@ -1,0 +1,13 @@
+diff --git a/README.md b/README.md
+index 3c4d698..6c2d408 100644
+--- a/README.md
++++ b/README.md
+@@ -47,7 +47,7 @@ The same `build_ui` function runs on desktop and web — no separate codebase.
+ | Linux | Stable | wgpu (Vulkan) |
+ | Android | Stable | wgpu (Vulkan) |
+ | iOS | Stable | wgpu (Metal) |
+-| **Web (WASM)** | **Preview** | wgpu (WebGPU) — Chrome 113+, Edge 113+, Firefox 141+, Safari 18+ (macOS Tahoe) |
++| **Web (WASM)** | **Stable** | Full parity across all major browsers with system tray, notifications, global hotkeys, and complete feature support |
+ | HarmonyOS | In progress | wgpu (Vulkan/OpenGL ES) |
+ 
+ ## Documentation

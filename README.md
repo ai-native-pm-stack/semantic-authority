@@ -212,11 +212,12 @@ Artifacts:
 - [docs/evidence/blinc/README.md](./docs/evidence/blinc/README.md)
 - [docs/evidence/blinc/blinc-dogfood-live.json](./docs/evidence/blinc/blinc-dogfood-live.json)
 - [docs/evidence/blinc/blinc-dogfood-estimate.json](./docs/evidence/blinc/blinc-dogfood-estimate.json)
+- [docs/evidence/blinc/labeled/README.md](./docs/evidence/blinc/labeled/README.md)
 
 What these benchmarks do not yet show:
 
-- labeled precision / recall
-- one published SARIF artifact or screenshot from a real PR
+- broad precision / recall on real PR traffic
+- one published GitHub annotation screenshot from a live PR
 
 ---
 

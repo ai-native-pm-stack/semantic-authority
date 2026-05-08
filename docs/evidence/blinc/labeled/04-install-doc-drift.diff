@@ -1,0 +1,22 @@
+diff --git a/docs/book/src/getting-started/installation.md b/docs/book/src/getting-started/installation.md
+index 1a0a2af..c004a51 100644
+--- a/docs/book/src/getting-started/installation.md
++++ b/docs/book/src/getting-started/installation.md
+@@ -3,7 +3,7 @@
+ ## Prerequisites
+ 
+ Blinc requires:
+-- **Rust 1.70+** (for stable async and other features)
++- **Rust 1.60+** (for stable async and other features)
+ - A GPU with Vulkan, Metal, or DX12 support
+ 
+ ## Adding Blinc to Your Project
+@@ -12,7 +12,7 @@ Add `blinc_app` to your `Cargo.toml`:
+ 
+ ```toml
+ [dependencies]
+-blinc_app = { version = "0.1", features = ["windowed"] }
++blinc_app = { version = "0.0.5", features = ["windowed"] }
+ ```
+ 
+ The `windowed` feature enables desktop windowing support. For headless rendering (e.g., server-side), omit this feature.

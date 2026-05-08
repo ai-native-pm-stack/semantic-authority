@@ -1,0 +1,150 @@
+{
+  "generated_at": "2026-05-07T23:54:13.949Z",
+  "project": "Blinc",
+  "kind": "seeded-labeled-portability-eval",
+  "provider": "openai",
+  "model": "gpt-5.4-mini",
+  "case_count": 5,
+  "summary": {
+    "tp": 0,
+    "fn": 4,
+    "fp": 0,
+    "tn": 1,
+    "error": 0,
+    "positive_cases": 4,
+    "negative_cases": 1,
+    "at_risk_recall": 0,
+    "at_risk_precision": null,
+    "specificity": 1
+  },
+  "cases": [
+    {
+      "id": "01-web-parity-overclaim",
+      "title": "README overstates web parity and browser feature support",
+      "expected": {
+        "positive": true,
+        "constraintIds": [
+          "C-REL-WEB-TIER2-004",
+          "NG-SCOPE-003",
+          "NG-SCOPE-006"
+        ]
+      },
+      "files": [
+        "README.md"
+      ],
+      "diffPath": "docs/evidence/blinc/labeled/01-web-parity-overclaim.diff",
+      "reviewJsonPath": "docs/evidence/blinc/labeled/01-web-parity-overclaim.review.json",
+      "sarifPath": "docs/evidence/blinc/labeled/01-web-parity-overclaim.sarif",
+      "actual": {
+        "status": 0,
+        "positive": false,
+        "constraintIds": [],
+        "insufficientContext": [],
+        "costUsd": 0.0089,
+        "provider": "openai",
+        "model": "gpt-5.4-mini"
+      },
+      "outcome": "fn"
+    },
+    {
+      "id": "02-accessibility-overclaim",
+      "title": "Roadmap claims full accessibility parity across all targets",
+      "expected": {
+        "positive": true,
+        "constraintIds": [
+          "NG-SCOPE-005"
+        ]
+      },
+      "files": [
+        "README.md"
+      ],
+      "diffPath": "docs/evidence/blinc/labeled/02-accessibility-overclaim.diff",
+      "reviewJsonPath": "docs/evidence/blinc/labeled/02-accessibility-overclaim.review.json",
+      "actual": {
+        "status": 0,
+        "positive": false,
+        "constraintIds": [],
+        "insufficientContext": [],
+        "costUsd": 0.007,
+        "provider": "openai",
+        "model": "gpt-5.4-mini"
+      },
+      "outcome": "fn"
+    },
+    {
+      "id": "03-codec-policy-reversal",
+      "title": "Roadmap reverses royalty-free codec policy",
+      "expected": {
+        "positive": true,
+        "constraintIds": [
+          "C-COMPLIANCE-ROYALTY-FREE-002"
+        ]
+      },
+      "files": [
+        "ROADMAP.md"
+      ],
+      "diffPath": "docs/evidence/blinc/labeled/03-codec-policy-reversal.diff",
+      "reviewJsonPath": "docs/evidence/blinc/labeled/03-codec-policy-reversal.review.json",
+      "actual": {
+        "status": 0,
+        "positive": false,
+        "constraintIds": [],
+        "insufficientContext": [],
+        "costUsd": 0.0021,
+        "provider": "openai",
+        "model": "gpt-5.4-mini"
+      },
+      "outcome": "fn"
+    },
+    {
+      "id": "04-install-doc-drift",
+      "title": "Installation docs drift below the shipped Rust and crate version",
+      "expected": {
+        "positive": true,
+        "constraintIds": [
+          "C-OPS-DOCS-PARITY-007"
+        ]
+      },
+      "files": [
+        "docs/book/src/getting-started/installation.md"
+      ],
+      "diffPath": "docs/evidence/blinc/labeled/04-install-doc-drift.diff",
+      "reviewJsonPath": "docs/evidence/blinc/labeled/04-install-doc-drift.review.json",
+      "actual": {
+        "status": 0,
+        "positive": false,
+        "constraintIds": [],
+        "insufficientContext": [
+          "C-OPS-RUNNABLE-EXAMPLES-006"
+        ],
+        "costUsd": 0.0049,
+        "provider": "openai",
+        "model": "gpt-5.4-mini"
+      },
+      "outcome": "fn"
+    },
+    {
+      "id": "05-negative-control-copyedit",
+      "title": "Benign README copy edit",
+      "expected": {
+        "positive": false,
+        "constraintIds": []
+      },
+      "files": [
+        "README.md"
+      ],
+      "diffPath": "docs/evidence/blinc/labeled/05-negative-control-copyedit.diff",
+      "reviewJsonPath": "docs/evidence/blinc/labeled/05-negative-control-copyedit.review.json",
+      "actual": {
+        "status": 0,
+        "positive": false,
+        "constraintIds": [],
+        "insufficientContext": [],
+        "costUsd": 0.0068,
+        "provider": "openai",
+        "model": "gpt-5.4-mini"
+      },
+      "outcome": "tn"
+    }
+  ]
+}
